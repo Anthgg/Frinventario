@@ -1,0 +1,134 @@
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-4);
+}
+
+.chip {
+  height: var(--ctrl-h-sm);
+  padding: 0 12px;
+  background: transparent;
+  border: 1px solid var(--filo);
+  border-radius: var(--r-full);
+  font-size: var(--fs-meta);
+  font-weight: 500;
+  color: var(--humo);
+  cursor: pointer;
+  transition:
+    background-color var(--t-press) var(--ease-out),
+    color var(--t-press) var(--ease-out),
+    border-color var(--t-press) var(--ease-out);
+}
+
+.chip:hover {
+  color: var(--tiza);
+  border-color: var(--filo-fuerte);
+}
+
+.chipActive {
+  background: var(--hilo-humo);
+  border-color: rgba(233, 180, 76, 0.4);
+  color: var(--hilo-vivo);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  padding: var(--sp-4);
+  background: var(--vidrio);
+  border: 1px solid var(--filo);
+  border-radius: var(--r-lg);
+  transition:
+    background-color var(--t-press) var(--ease-out),
+    border-color var(--t-press) var(--ease-out),
+    transform var(--t-press) var(--ease-out);
+}
+
+.row:hover {
+  background: var(--vidrio-alto);
+  border-color: var(--filo-fuerte);
+}
+
+.row:active {
+  transform: scale(0.997);
+}
+
+.leading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.name {
+  font-size: var(--fs-h4);
+  font-weight: 600;
+  color: var(--tiza);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  font-size: var(--fs-meta);
+  color: var(--humo);
+}
+
+.trailing {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  flex: none;
+}
+
+.count {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.count .mono {
+  font-size: var(--fs-h4);
+  font-weight: 600;
+  color: var(--tiza);
+}
+
+.countLabel {
+  font-size: var(--fs-caption);
+  color: var(--ceniza);
+}
+
+.chevron {
+  color: var(--ceniza);
+}
+
+@media (max-width: 640px) {
+  .row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--sp-3);
+  }
+
+  .trailing {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .count {
+    align-items: flex-start;
+  }
+}

@@ -1,0 +1,53 @@
+.card {
+  width: 100%;
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-5);
+}
+
+.title {
+  font-size: var(--fs-h2);
+  font-weight: 600;
+  color: var(--tiza);
+}
+
+.subtitle {
+  margin-top: var(--sp-1);
+  font-size: var(--fs-meta);
+  color: var(--humo);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin: var(--sp-5) 0;
+  color: var(--ceniza);
+  font-size: var(--fs-caption);
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--filo);
+}
+
+.note {
+  margin-top: var(--sp-4);
+  font-size: var(--fs-caption);
+  line-height: 1.6;
+  color: var(--ceniza);
+}

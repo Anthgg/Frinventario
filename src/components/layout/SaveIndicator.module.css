@@ -1,0 +1,60 @@
+.indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--filo);
+  border-radius: var(--r-full);
+  font-size: var(--fs-caption);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.saved {
+  color: var(--validado-texto);
+  background: var(--validado-humo);
+  border-color: rgba(87, 201, 139, 0.28);
+}
+
+.saving {
+  color: var(--hilo-vivo);
+  background: var(--hilo-humo);
+  border-color: rgba(233, 180, 76, 0.28);
+}
+
+.offline {
+  color: var(--alerta-texto);
+  background: var(--alerta-humo);
+  border-color: rgba(224, 145, 60, 0.28);
+}
+
+.label {
+  display: inline;
+}
+
+.spin {
+  animation: giro 700ms linear infinite;
+}
+
+@keyframes giro {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 640px) {
+  .label {
+    /* en mobile solo el color comunica; el texto va en aria-live */
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .indicator {
+    padding: 6px;
+    border-radius: var(--r-ctrl);
+  }
+}

@@ -1,0 +1,138 @@
+/* =============================================================================
+   Base: reset mínimo + tipografía + foco. Sin utilidades de layout sueltas:
+   la composición vive en los componentes.
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-size-adjust: 100%;
+}
+
+body {
+  min-height: 100dvh;
+  background-color: var(--noche-900);
+  color: var(--tiza);
+  font-family: var(--font-ui);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  font-synthesis-weight: none;
+  /* pasillo del almacén: una tenue franja de luz sobre el grafito */
+  background-image:
+    radial-gradient(120% 60% at 50% -10%, rgba(233, 180, 76, 0.05), transparent 60%),
+    radial-gradient(80% 50% at 100% 0%, rgba(90, 130, 200, 0.05), transparent 55%);
+  background-attachment: fixed;
+}
+
+#root {
+  min-height: 100dvh;
+  isolation: isolate;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  line-height: var(--lh-tight);
+  font-weight: 600;
+  text-wrap: balance;
+  letter-spacing: -0.015em;
+}
+
+h1 {
+  font-size: var(--fs-h1);
+}
+h2 {
+  font-size: var(--fs-h2);
+}
+h3 {
+  font-size: var(--fs-h3);
+}
+h4 {
+  font-size: var(--fs-h4);
+}
+
+p {
+  text-wrap: pretty;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+/* Foco visible y consistente: el hilo marca dónde estás. */
+:focus-visible {
+  outline: 2px solid var(--filo-foco);
+  outline-offset: 2px;
+  border-radius: var(--r-xs);
+}
+
+::selection {
+  background: var(--hilo-humo);
+  color: var(--tiza);
+}
+
+/* Scrollbars discretos, parte del vidrio. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--noche-650) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--noche-650);
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: var(--r-full);
+}
+
+/* Utilidad de accesibilidad (labels visuales disfrazados, aria-live). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.numeros {
+  font-variant-numeric: tabular-nums;
+}

@@ -1,0 +1,352 @@
+.heroGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: var(--sp-4);
+  align-items: stretch;
+}
+
+/* --------------------------------- Héroe --------------------------------- */
+.hero {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: linear-gradient(180deg, var(--hilo), transparent 85%);
+  opacity: 0.75;
+}
+
+.heroLabel {
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hilo);
+}
+
+.heroTitle {
+  margin-top: var(--sp-2);
+  font-size: var(--fs-h2);
+  font-weight: 600;
+  color: var(--tiza);
+}
+
+.heroCode {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+  font-size: var(--fs-meta);
+  color: var(--humo);
+}
+
+.dot {
+  width: 3px;
+  height: 3px;
+  border-radius: var(--r-full);
+  background: var(--ceniza);
+}
+
+.heroFigure {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  margin-top: var(--sp-5);
+  flex-wrap: wrap;
+}
+
+.heroNumber {
+  font-size: var(--fs-display);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--tiza);
+}
+
+.heroUnit {
+  display: flex;
+  flex-direction: column;
+  font-size: var(--fs-body);
+  font-weight: 500;
+  color: var(--niebla);
+}
+
+.heroHint {
+  font-size: var(--fs-caption);
+  font-weight: 400;
+  color: var(--ceniza);
+}
+
+.heroFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-top: auto;
+  padding-top: var(--sp-5);
+}
+
+.heroMeta {
+  font-size: var(--fs-caption);
+  color: var(--ceniza);
+}
+
+.heroLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  font-size: var(--fs-meta);
+  font-weight: 600;
+  color: var(--hilo-vivo);
+  transition: color var(--t-press) var(--ease-out);
+}
+
+.heroLink:hover {
+  color: var(--hilo);
+}
+
+/* -------------------------------- Resumen -------------------------------- */
+.summary {
+  display: flex;
+  flex-direction: column;
+}
+
+.summaryTitle {
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ceniza);
+  margin-bottom: var(--sp-3);
+}
+
+.summaryList {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+.summaryRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid var(--filo-tenue);
+}
+
+.summaryRow:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.summaryRow dt {
+  font-size: var(--fs-meta);
+  color: var(--humo);
+}
+
+.summaryRow dd {
+  margin: 0;
+  font-size: var(--fs-h3);
+  font-weight: 600;
+  color: var(--tiza);
+}
+
+/* --------------------------------- Paneles ------------------------------- */
+.panels {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: var(--sp-4);
+  margin-top: var(--sp-4);
+}
+
+.panelHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-3);
+}
+
+.panelTitle {
+  font-size: var(--fs-h4);
+  font-weight: 600;
+  color: var(--tiza);
+}
+
+.panelLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding-right: 2px;
+  font-size: var(--fs-meta);
+  font-weight: 500;
+  color: var(--humo);
+}
+
+.panelLink:hover {
+  color: var(--hilo-vivo);
+}
+
+.campaignList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.campaignRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  padding: var(--sp-3) var(--sp-2);
+  margin: 0 calc(-1 * var(--sp-2));
+  border-radius: var(--r-md);
+  transition: background-color var(--t-press) var(--ease-out);
+}
+
+.campaignRow:hover {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.campaignMain {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.campaignName {
+  font-size: var(--fs-body);
+  font-weight: 500;
+  color: var(--tiza);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.campaignMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-caption);
+  color: var(--humo);
+}
+
+.campaignSide {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  flex: none;
+}
+
+.campaignCount {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  min-width: 76px;
+}
+
+.campaignCount .mono {
+  font-size: var(--fs-body);
+  font-weight: 600;
+  color: var(--tiza);
+}
+
+.campaignCountLabel {
+  font-size: var(--fs-caption);
+  color: var(--ceniza);
+}
+
+/* -------------------------------- Actividad ------------------------------ */
+.feed {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.feedItem {
+  display: flex;
+  gap: var(--sp-3);
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid var(--filo-tenue);
+}
+
+.feedItem:last-child {
+  border-bottom: none;
+}
+
+.feedTime {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: var(--fs-caption);
+  font-variant-numeric: tabular-nums;
+  color: var(--ceniza);
+  padding-top: 2px;
+}
+
+.feedText {
+  font-size: var(--fs-meta);
+  color: var(--niebla);
+  line-height: 1.5;
+}
+
+.feedWho {
+  font-weight: 600;
+  color: var(--tiza);
+}
+
+.feedSkeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.feedSkeletonRow {
+  display: flex;
+  gap: var(--sp-3);
+  align-items: center;
+}
+
+/* ================================ RESPONSIVE ============================= */
+@media (max-width: 1023px) {
+  .heroGrid,
+  .panels {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .heroNumber {
+    font-size: 36px;
+  }
+}
+
+@media (max-width: 640px) {
+  .campaignRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--sp-2);
+  }
+
+  .campaignSide {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .campaignCount {
+    align-items: flex-start;
+    min-width: 0;
+  }
+}

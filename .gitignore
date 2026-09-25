@@ -1,0 +1,46 @@
+# =============================================================================
+# INVENTARIO DEDALO - FRONTEND (Node / Vite / React)
+# F000.1
+# =============================================================================
+
+# ------------------------- Entorno y secretos --------------------------------
+# NUNCA commitear archivos con credenciales reales.
+.env
+.env.*
+!.env.example
+*.local
+
+# -------------------------------- Node ---------------------------------------
+node_modules/
+.pnpm-store/
+
+# -------------------------------- Build --------------------------------------
+dist/
+dist-ssr/
+build/
+.vite/
+*.tsbuildinfo
+
+# ------------------------------- Testing -------------------------------------
+coverage/
+.vitest/
+
+# --------------------------------- Logs --------------------------------------
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# --------------------------------- PWA ---------------------------------------
+dev-dist/
+
+# ------------------------------ IDE / SO -------------------------------------
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+.DS_Store
+Thumbs.db

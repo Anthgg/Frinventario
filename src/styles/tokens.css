@@ -1,0 +1,131 @@
+/* =============================================================================
+   INVENTARIO DEDALO — TOKENS
+   Mundo: almacén nocturno. Grafito azulado (estantería bajo luz LED fría),
+   un solo acento: el hilo de oro de Ariadna que guía por el laberinto.
+   Profundidad: vidrio (translucidez + filo de 1px). Sin sombras dramáticas.
+   ========================================================================== */
+
+:root {
+  color-scheme: dark;
+
+  /* ------------------------------- Superficies --------------------------- */
+  --noche-900: #0a0e14; /* lienzo: pasillo del almacén de noche */
+  --noche-850: #0d121a;
+  --noche-800: #111722; /* superficie base */
+  --noche-750: #151c29; /* superficie elevada */
+  --noche-700: #1a2231; /* control / input hundido */
+  --noche-650: #212a3b; /* hover de superficie */
+
+  --vidrio: rgba(17, 23, 34, 0.74);
+  --vidrio-alto: rgba(26, 34, 49, 0.82);
+  --vidrio-brillo: rgba(255, 255, 255, 0.035);
+  --desenfoque: blur(18px);
+
+  /* ------------------------------ Filos (borde) -------------------------- */
+  --filo-tenue: rgba(255, 255, 255, 0.05);
+  --filo: rgba(255, 255, 255, 0.08);
+  --filo-fuerte: rgba(255, 255, 255, 0.14);
+  --filo-foco: rgba(233, 180, 76, 0.6);
+
+  /* ------------------------------ Texto (4 niveles) ---------------------- */
+  --tiza: #eef1f6; /* primario */
+  --niebla: #a6afc0; /* secundario / labels */
+  --humo: #737d8f; /* metadata */
+  --ceniza: #4c5566; /* deshabilitado */
+
+  /* ------------------------------ Acento: el hilo ------------------------ */
+  --hilo: #e9b44c;
+  --hilo-vivo: #f5c76a;
+  --hilo-apagado: #b98c33;
+  --hilo-humo: rgba(233, 180, 76, 0.14);
+  --hilo-bruma: rgba(233, 180, 76, 0.07);
+  --sobre-hilo: #1a1204;
+
+  /* ------------------------------ Semánticos ----------------------------- */
+  --validado: #57c98b;
+  --validado-texto: #86e0ae;
+  --validado-humo: rgba(87, 201, 139, 0.13);
+  --alerta: #e0913c;
+  --alerta-texto: #f2b267;
+  --alerta-humo: rgba(224, 145, 60, 0.13);
+  --fisura: #e8635f;
+  --fisura-texto: #ff9c98;
+  --fisura-humo: rgba(232, 99, 95, 0.13);
+
+  /* ------------------------------ Profundidad ---------------------------- */
+  --sombra-plana: 0 0 0 1px var(--filo-tenue);
+  --sombra-media: 0 1px 2px rgba(0, 0, 0, 0.36), 0 0 0 1px var(--filo);
+  --sombra-overlay: 0 24px 56px -20px rgba(0, 0, 0, 0.72), 0 0 0 1px var(--filo-fuerte);
+
+  /* ------------------------------ Radio ---------------------------------- */
+  --r-xs: 4px;
+  --r-sm: 6px;
+  --r-ctrl: 8px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-xl: 20px;
+  --r-full: 999px;
+
+  /* ------------------------------ Espaciado (base 4) --------------------- */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+  --sp-16: 64px;
+
+  /* ------------------------------ Densidad: banco de trabajo ------------- */
+  --ctrl-h: 36px;
+  --ctrl-h-sm: 30px;
+  --ctrl-h-lg: 44px;
+  --tocable: 44px; /* objetivo táctil WCAG */
+  --barra: 264px; /* sidebar: sirve al contenido, no es par */
+  --riel: 76px; /* tablet: riel de iconos */
+  --barra-top: 60px;
+  --nav-movil: 62px;
+
+  /* ------------------------------ Tipografía ----------------------------- */
+  --font-ui: 'Archivo Variable', 'Archivo', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, 'Cascadia Mono',
+    monospace;
+
+  /* escala 1.25 desde 14px */
+  --fs-caption: 11px;
+  --fs-meta: 12px;
+  --fs-body: 14px;
+  --fs-h4: 16px;
+  --fs-h3: 18px;
+  --fs-h2: 22px;
+  --fs-h1: 28px;
+  --fs-display: 44px;
+
+  --lh-tight: 1.15;
+  --lh-snug: 1.3;
+  --lh-body: 1.5;
+
+  /* ------------------------------ Movimiento ----------------------------- */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-inout: cubic-bezier(0.77, 0, 0.175, 1);
+  --t-press: 120ms;
+  --t-ui: 180ms;
+  --t-surface: 240ms;
+
+  /* ------------------------------ Capas ---------------------------------- */
+  --z-barra: 30;
+  --z-nav: 40;
+  --z-overlay: 60;
+  --z-toast: 80;
+}
+
+/* Modo claro futuro: misma estructura, luz invertida (no usado en FF000). */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --t-press: 0ms;
+    --t-ui: 0ms;
+    --t-surface: 0ms;
+  }
+}

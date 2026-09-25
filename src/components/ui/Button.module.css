@@ -1,0 +1,115 @@
+.button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  height: var(--ctrl-h);
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: var(--r-ctrl);
+  font-size: var(--fs-body);
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background-color var(--t-press) var(--ease-out),
+    border-color var(--t-press) var(--ease-out),
+    color var(--t-press) var(--ease-out),
+    transform var(--t-press) var(--ease-out);
+}
+
+.button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.content {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+/* ------------------------------- Variantes ------------------------------- */
+
+.primary {
+  background: var(--hilo);
+  color: var(--sobre-hilo);
+  font-weight: 600;
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--hilo-vivo);
+}
+
+.secondary {
+  background: var(--noche-750);
+  border-color: var(--filo);
+  color: var(--tiza);
+}
+
+.secondary:hover:not(:disabled) {
+  background: var(--noche-650);
+  border-color: var(--filo-fuerte);
+}
+
+.ghost {
+  background: transparent;
+  color: var(--niebla);
+}
+
+.ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--tiza);
+}
+
+.danger {
+  background: var(--fisura-humo);
+  border-color: rgba(232, 99, 95, 0.35);
+  color: var(--fisura-texto);
+}
+
+.danger:hover:not(:disabled) {
+  background: rgba(232, 99, 95, 0.2);
+}
+
+/* -------------------------------- Tamaños -------------------------------- */
+
+.sm {
+  height: var(--ctrl-h-sm);
+  padding: 0 10px;
+  font-size: var(--fs-meta);
+}
+
+.lg {
+  height: var(--ctrl-h-lg);
+  padding: 0 18px;
+  font-size: var(--fs-h4);
+}
+
+.block {
+  width: 100%;
+}
+
+.icon {
+  width: var(--ctrl-h);
+  padding: 0;
+}
+
+.icon.sm {
+  width: var(--ctrl-h-sm);
+}
+
+.icon.lg {
+  width: var(--ctrl-h-lg);
+}
+
+.spinner {
+  flex: none;
+}
