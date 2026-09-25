@@ -93,8 +93,8 @@ export function LoginPage() {
       </Button>
 
       <p className={styles.note}>
-        La sesión demo corre localmente con datos <span className="mono">UI_MOCK</span>. El flujo
-        real contra <span className="mono">/api/v1/auth</span> queda cableado, sin cerrar en FF000.
+        En FF000, el formulario inicia una sesión local <span className="mono">UI_MOCK</span>;
+        no valida ni envía credenciales. La autenticación real llega en FF001.
       </p>
     </Card>
   );

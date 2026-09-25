@@ -1,5 +1,5 @@
 import { LogOut, Menu } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { BrandMark, Wordmark } from '@/components/BrandMark';
 import { Badge } from '@/components/ui/Badge';
@@ -74,7 +74,15 @@ function SidebarNav() {
   );
 }
 
-function MoreDrawer({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+function MoreDrawer({
+  open,
+  onOpenChange,
+  returnFocus,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  returnFocus: () => void;
+}) {
   const extra = NAV_ITEMS.filter(
     (item) => !BOTTOM_NAV.some((bottom) => bottom.to === item.to),
   );
@@ -87,6 +95,7 @@ function MoreDrawer({ open, onOpenChange }: { open: boolean; onOpenChange: (open
       description="Operación y control fuera de la barra principal."
       closeLabel="Cerrar menú"
       footer={<UserBlock />}
+      returnFocus={returnFocus}
     >
       <nav aria-label="Navegación adicional">
         <ul className={styles.drawerList}>
@@ -114,6 +123,7 @@ function MoreDrawer({ open, onOpenChange }: { open: boolean; onOpenChange: (open
 export function AppLayout() {
   const { pathname } = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
+  const moreTriggerRef = useRef<HTMLButtonElement>(null);
   const title = titleFor(pathname);
   const active = findNavItem(pathname);
   const sectionLabel = active
@@ -170,7 +180,10 @@ export function AppLayout() {
             <span className={styles.topbarMenu}>
               <IconButton
                 label="Abrir más secciones"
-                onClick={() => setMoreOpen(true)}
+                onClick={(event) => {
+                  moreTriggerRef.current = event.currentTarget;
+                  setMoreOpen(true);
+                }}
                 aria-expanded={moreOpen}
               >
                 <Menu size={18} />
@@ -205,14 +218,21 @@ export function AppLayout() {
           className={styles.bottomItem}
           aria-expanded={moreOpen}
           aria-haspopup="dialog"
-          onClick={() => setMoreOpen(true)}
+          onClick={(event) => {
+            moreTriggerRef.current = event.currentTarget;
+            setMoreOpen(true);
+          }}
         >
           <Menu size={19} aria-hidden="true" />
           <span className={styles.bottomLabel}>Más</span>
         </button>
       </nav>
 
-      <MoreDrawer open={moreOpen} onOpenChange={setMoreOpen} />
+      <MoreDrawer
+        open={moreOpen}
+        onOpenChange={setMoreOpen}
+        returnFocus={() => moreTriggerRef.current?.focus()}
+      />
     </div>
   );
 }

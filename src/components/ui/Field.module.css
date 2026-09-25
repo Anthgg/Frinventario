@@ -33,7 +33,7 @@
 }
 
 .input::placeholder {
-  color: var(--ceniza);
+  color: var(--humo);
 }
 
 .input:hover:not(:disabled) {

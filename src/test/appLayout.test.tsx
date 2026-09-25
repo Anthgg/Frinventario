@@ -83,6 +83,28 @@ describe('navegación mobile', () => {
     expect(within(dialog).getByRole('link', { name: 'Configuración' })).toBeInTheDocument();
   });
 
+  it('asocia la descripción del cajón y devuelve el foco al activador tras Escape', async () => {
+    seedSession();
+    const user = userEvent.setup();
+    renderApp('/app/dashboard');
+
+    await screen.findByRole('heading', { name: 'Dashboard', level: 1 });
+    const trigger = screen.getByRole('button', { name: 'Abrir más secciones' });
+    await user.click(trigger);
+
+    const dialog = await screen.findByRole('dialog', { name: 'Más secciones' });
+    const descriptionId = dialog.getAttribute('aria-describedby');
+    expect(descriptionId).toBeTruthy();
+    expect(document.getElementById(descriptionId!)).toHaveTextContent(
+      'Operación y control fuera de la barra principal.',
+    );
+
+    await user.keyboard('{Escape}');
+
+    expect(await screen.findByRole('heading', { name: 'Dashboard', level: 1 })).toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+  });
+
   it('desde el cajón se puede navegar a una sección', async () => {
     seedSession();
     const user = userEvent.setup();

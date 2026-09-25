@@ -60,7 +60,7 @@
 
 .registeredLabel {
   font-size: var(--fs-caption);
-  color: var(--ceniza);
+  color: var(--humo);
 }
 
 /* ---------------------- Controles: cantidades + daño --------------------- */
@@ -171,7 +171,7 @@
 
 .recentCount {
   font-size: var(--fs-caption);
-  color: var(--ceniza);
+  color: var(--humo);
 }
 
 .recentList {
@@ -255,11 +255,12 @@
 @media (max-width: 767px) {
   /* Prioridad mobile: cámara → producto → controles → lista → finalizar */
   .cameraZone {
-    margin-bottom: var(--sp-4);
+    margin-bottom: var(--sp-2);
   }
 
   .currentCard {
     position: relative;
+    gap: var(--sp-3);
   }
 
   .stepButton {

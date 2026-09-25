@@ -81,7 +81,7 @@
 .heroHint {
   font-size: var(--fs-caption);
   font-weight: 400;
-  color: var(--ceniza);
+  color: var(--humo);
 }
 
 .heroFoot {
@@ -95,7 +95,7 @@
 
 .heroMeta {
   font-size: var(--fs-caption);
-  color: var(--ceniza);
+  color: var(--humo);
 }
 
 .heroLink {
@@ -124,7 +124,7 @@
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--ceniza);
+  color: var(--humo);
   margin-bottom: var(--sp-3);
 }
 
@@ -266,7 +266,7 @@
 
 .campaignCountLabel {
   font-size: var(--fs-caption);
-  color: var(--ceniza);
+  color: var(--humo);
 }
 
 /* -------------------------------- Actividad ------------------------------ */
@@ -294,7 +294,7 @@
   font-family: var(--font-mono);
   font-size: var(--fs-caption);
   font-variant-numeric: tabular-nums;
-  color: var(--ceniza);
+  color: var(--humo);
   padding-top: 2px;
 }
 

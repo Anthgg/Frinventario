@@ -4,7 +4,7 @@
  * ni detalles internos al usuario.
  */
 
-export type ApiErrorCode =
+type KnownApiErrorCode =
   | 'UNAUTHORIZED'
   | 'FORBIDDEN'
   | 'NOT_FOUND'
@@ -17,9 +17,13 @@ export type ApiErrorCode =
   | 'NETWORK_ERROR'
   | 'UNKNOWN_ERROR';
 
+/** Backend-specific error codes are retained for callers that need to branch on them. */
+export type ApiErrorCode = KnownApiErrorCode | (string & {});
+
 export interface ApiErrorDetails {
   readonly field?: string;
   readonly issues?: ReadonlyArray<{ path?: string; message?: string }>;
+  readonly [key: string]: unknown;
 }
 
 interface StatusSpec {
@@ -53,10 +57,28 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-function readDetail(payload: unknown): string | undefined {
+function readErrorContent(payload: unknown): Record<string, unknown> | undefined {
+  if (!isRecord(payload)) return undefined;
+  return isRecord(payload['detail']) ? payload['detail'] : payload;
+}
+
+function readMessage(payload: unknown): string | undefined {
   if (!isRecord(payload)) return undefined;
   const detail = payload['detail'];
   if (typeof detail === 'string' && detail.trim().length > 0) return detail;
+
+  const content = readErrorContent(payload);
+  const message = content?.['message'];
+  return typeof message === 'string' && message.trim().length > 0 ? message : undefined;
+}
+
+function readCode(payload: unknown): ApiErrorCode | undefined {
+  const content = readErrorContent(payload);
+  if (!content) return undefined;
+
+  for (const value of [content['code'], content['error']]) {
+    if (typeof value === 'string' && value.trim().length > 0) return value;
+  }
   return undefined;
 }
 
@@ -72,6 +94,18 @@ function readIssues(payload: unknown): ApiErrorDetails['issues'] {
     }
     return {};
   });
+}
+
+function readDetails(payload: unknown): ApiErrorDetails | undefined {
+  const content = readErrorContent(payload);
+  if (!content) return undefined;
+
+  const explicitDetails = isRecord(content['details']) ? content['details'] : undefined;
+  const details = Object.fromEntries(
+    Object.entries(content).filter(([key]) => !['code', 'error', 'message', 'details'].includes(key)),
+  );
+  const combined = { ...details, ...explicitDetails };
+  return Object.keys(combined).length > 0 ? combined : undefined;
 }
 
 export class ApiError extends Error {
@@ -94,10 +128,11 @@ export class ApiError extends Error {
 
   static fromResponse(status: number, payload?: unknown): ApiError {
     const spec = STATUS_SPEC[status] ?? UNKNOWN_SPEC;
-    const serverMessage = readDetail(payload);
+    const serverMessage = readMessage(payload);
+    const serverCode = readCode(payload);
     const issues = readIssues(payload);
-    const details: ApiErrorDetails | undefined = issues ? { issues } : undefined;
-    return new ApiError(status, spec.code, serverMessage ?? spec.message, details);
+    const details = issues ? { issues } : readDetails(payload);
+    return new ApiError(status, serverCode ?? spec.code, serverMessage ?? spec.message, details);
   }
 
   static network(): ApiError {

@@ -28,6 +28,21 @@ describe('ApiError', () => {
     expect(error.message).toBe('Credenciales invalidas');
   });
 
+  it('preserva código, mensaje y campos de errores FastAPI con detail objeto', () => {
+    const error = ApiError.fromResponse(409, {
+      detail: {
+        message: 'Conflicto de versión',
+        error: 'VERSION_CONFLICT',
+        product_id: 'p-1',
+      },
+    });
+
+    expect(error.status).toBe(409);
+    expect(error.code).toBe('VERSION_CONFLICT');
+    expect(error.message).toBe('Conflicto de versión');
+    expect(error.details).toEqual({ product_id: 'p-1' });
+  });
+
   it('expone los issues de validación 422 sin inventar mensajes', () => {
     const error = ApiError.fromResponse(422, {
       detail: [{ loc: ['body', 'email'], msg: 'Field required' }],

@@ -43,7 +43,7 @@
   font-size: var(--fs-caption);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--ceniza);
+  color: var(--humo);
 }
 
 .data dd {

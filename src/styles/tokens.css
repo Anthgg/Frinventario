@@ -30,7 +30,7 @@
   /* ------------------------------ Texto (4 niveles) ---------------------- */
   --tiza: #eef1f6; /* primario */
   --niebla: #a6afc0; /* secundario / labels */
-  --humo: #737d8f; /* metadata */
+  --humo: #8b95a7; /* metadata with WCAG AA contrast on dark surfaces */
   --ceniza: #4c5566; /* deshabilitado */
 
   /* ------------------------------ Acento: el hilo ------------------------ */

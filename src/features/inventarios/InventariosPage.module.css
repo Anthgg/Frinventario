@@ -109,11 +109,11 @@
 
 .countLabel {
   font-size: var(--fs-caption);
-  color: var(--ceniza);
+  color: var(--humo);
 }
 
 .chevron {
-  color: var(--ceniza);
+  color: var(--humo);
 }
 
 @media (max-width: 640px) {

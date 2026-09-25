@@ -21,7 +21,7 @@
   font-size: var(--fs-caption);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--ceniza);
+  color: var(--humo);
 }
 
 .field dd {
@@ -39,12 +39,12 @@
 .placeholder {
   font-family: var(--font-mono);
   font-size: var(--fs-h4);
-  color: var(--ceniza);
+  color: var(--humo);
 }
 
 .note {
   font-size: var(--fs-caption);
-  color: var(--ceniza);
+  color: var(--humo);
   font-family: var(--font-mono);
 }
 

@@ -14,6 +14,7 @@ interface SurfaceProps {
   footer?: ReactNode;
   closeLabel: string;
   className?: string;
+  returnFocus?: () => void;
 }
 
 /** Superficie compartida: encabezado, cuerpo y acciones de diálogo/cajón. */
@@ -24,9 +25,23 @@ function Surface({
   footer,
   closeLabel,
   className,
+  returnFocus,
 }: SurfaceProps) {
+  const descriptionProps = description ? {} : { 'aria-describedby': undefined };
+
   return (
-    <DialogPrimitive.Content className={className} aria-describedby={undefined}>
+    <DialogPrimitive.Content
+      className={className}
+      {...descriptionProps}
+      onCloseAutoFocus={
+        returnFocus
+          ? (event) => {
+              event.preventDefault();
+              returnFocus();
+            }
+          : undefined
+      }
+    >
       <header className={styles.header}>
         <div>
           <DialogPrimitive.Title className={styles.title}>{title}</DialogPrimitive.Title>
@@ -90,6 +105,7 @@ export function Dialog({
 export interface DrawerProps extends Omit<DialogProps, 'children'> {
   children?: ReactNode;
   side?: 'right' | 'left' | 'bottom';
+  returnFocus?: () => void;
 }
 
 /** Cajón lateral (mobile). Misma primitiva, desliza desde el borde. */
@@ -102,6 +118,7 @@ export function Drawer({
   footer,
   side = 'right',
   closeLabel = 'Cerrar',
+  returnFocus,
 }: DrawerProps) {
   return (
     <Root open={open} onOpenChange={onOpenChange}>
@@ -113,6 +130,7 @@ export function Drawer({
           description={description}
           closeLabel={closeLabel}
           footer={footer}
+          returnFocus={returnFocus}
         >
           {children}
         </Surface>

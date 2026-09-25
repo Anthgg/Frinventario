@@ -7,17 +7,14 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { authApi } from '@/api/auth';
 import { setAccessToken } from '@/api/client';
-import { ApiError } from '@/api/errors';
-import type { AuthSessionUser, MeResponse, RoleCode } from '@/types/auth';
+import type { AuthSessionUser, RoleCode } from '@/types/auth';
 
 /**
  * Infraestructura de auth.
  *
- * FF000: prepara el estado y los flujos reales (login/refresh/logout/me)
- * sin implementar la sesión final. El acceso navegable se logra con una
- * sesión de demostración marcada como UI_MOCK.
+ * FF000 conserva una sesión local UI_MOCK para navegar y prepara la estructura
+ * del estado de auth. Los endpoints reales se definen por separado y empiezan en FF001.
  */
 
 const STORAGE_KEY = 'dedalo.auth.session';
@@ -52,7 +49,7 @@ function readStoredSession(): StoredSession | null {
     const parsed: unknown = JSON.parse(raw);
     if (typeof parsed !== 'object' || parsed === null) return null;
     const candidate = parsed as Partial<StoredSession>;
-    if (!candidate.user || !Array.isArray(candidate.permissions)) return null;
+    if (!candidate.user || !Array.isArray(candidate.permissions) || candidate.demo !== true) return null;
     return {
       user: candidate.user,
       permissions: candidate.permissions,
@@ -123,33 +120,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [applySession]);
 
   const login = useCallback(
-    async (email: string, password: string) => {
-      const payload = await authApi.login(email, password);
-      setAccessToken(payload.access_token);
-      try {
-        const me: MeResponse = await authApi.me();
-        applySession({ user: me, permissions: me.permissions, demo: false });
-      } catch (error) {
-        setAccessToken(null);
-        throw ApiError.from(error);
-      }
+    async (_email: string, _password: string) => {
+      // FF000 does not send credentials; this form enters the local demo session.
+      signInDemo();
     },
-    [applySession],
+    [signInDemo],
   );
 
   const logout = useCallback(async () => {
-    const current = session;
     setSession(null);
     writeStoredSession(null);
     setAccessToken(null);
-    if (current && !current.demo) {
-      try {
-        await authApi.logout();
-      } catch {
-        /* la sesión local ya terminó; el backend registra su parte */
-      }
-    }
-  }, [session]);
+  }, []);
 
   const value = useMemo<AuthContextValue>(() => {
     const user = session?.user ?? null;
