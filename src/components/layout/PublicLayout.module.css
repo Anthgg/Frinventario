@@ -31,6 +31,6 @@
   width: 100%;
   max-width: 420px;
   margin: var(--sp-8) auto 0;
-  font-size: var(--fs-caption);
+  font-size: var(--fs-meta);
   color: var(--humo);
 }

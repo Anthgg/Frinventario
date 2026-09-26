@@ -19,7 +19,7 @@
 
 .sub {
   margin-top: 3px;
-  font-size: var(--fs-caption);
+  font-size: var(--fs-meta);
   font-weight: 500;
   letter-spacing: 0.14em;
   text-transform: uppercase;

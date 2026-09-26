@@ -42,7 +42,7 @@
 
 .note {
   margin-top: var(--sp-4);
-  font-size: var(--fs-caption);
+  font-size: var(--fs-meta);
   line-height: 1.6;
   color: var(--humo);
 }
