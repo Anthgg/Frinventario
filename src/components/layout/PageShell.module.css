@@ -1,0 +1,8 @@
+/* Vista de módulo a ancho completo. Este archivo NO debe incorporar
+   max-width con medidas: rompe la regla FULL_WORKSPACE de FF001. */
+.shell {
+  display: block;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}

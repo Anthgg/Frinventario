@@ -1,6 +1,7 @@
 import { FileText, Inbox, ListChecks, Scale } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { PageShell } from '@/components/layout/PageShell';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/State';
@@ -11,7 +12,7 @@ const MOCK_BADGE = <Badge tone="hilo">{UI_MOCK}</Badge>;
 
 export function RecountsPage() {
   return (
-    <>
+    <PageShell>
       <PageHeader
         title="Reconteos"
         description="Segunda pasada sobre productos marcados durante el conteo principal."
@@ -24,13 +25,13 @@ export function RecountsPage() {
           description="Cuando un supervisor abra un reconteo aparecerá aquí, con su responsable y estado."
         />
       </Card>
-    </>
+    </PageShell>
   );
 }
 
 export function ReconciliationPage() {
   return (
-    <>
+    <PageShell>
       <PageHeader
         title="Conciliación"
         description="Comparación de lo contado contra el registro — resuelta por el backend, revisada aquí."
@@ -43,13 +44,13 @@ export function ReconciliationPage() {
           description="No hay diferencias esperando revisión en esta campaña."
         />
       </Card>
-    </>
+    </PageShell>
   );
 }
 
 export function DocumentsPage() {
   return (
-    <>
+    <PageShell>
       <PageHeader
         title="Documentos"
         description="Guías, boletas y evidencias vinculadas a las campañas de inventario."
@@ -62,7 +63,7 @@ export function DocumentsPage() {
           description="Los archivos que subas desde el dispositivo se listarán aquí con su estado de procesamiento."
         />
       </Card>
-    </>
+    </PageShell>
   );
 }
 
@@ -75,7 +76,7 @@ const COMPANY_FIELDS: { label: string; note: string }[] = [
 
 export function ConfiguracionPage() {
   return (
-    <>
+    <PageShell>
       <PageHeader
         title="Configuración"
         description="Datos de la empresa y preferencias del dispositivo."
@@ -100,7 +101,7 @@ export function ConfiguracionPage() {
           ))}
         </dl>
       </Card>
-    </>
+    </PageShell>
   );
 }
 

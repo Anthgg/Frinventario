@@ -1,11 +1,20 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
+import { resetConnection } from '@/api/connection';
+import { setAccessToken, setApiAuthHandler } from '@/api/client';
+import { resetRefreshController } from '@/auth/refreshController';
 
 afterEach(() => {
   cleanup();
   window.localStorage.clear();
+  window.sessionStorage.clear();
+  setApiAuthHandler(null);
+  setAccessToken(null);
+  resetConnection();
+  resetRefreshController();
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   vi.useRealTimers();
 });
 
@@ -27,8 +36,8 @@ if (typeof window.matchMedia !== 'function') {
 /* Radix mide elementos con ResizeObserver. */
 if (typeof globalThis.ResizeObserver !== 'function') {
   globalThis.ResizeObserver = class {
-    observe(): void {}
-    unobserve(): void {}
-    disconnect(): void {}
+    observe() {}
+    unobserve() {}
+    disconnect() {}
   } as unknown as typeof ResizeObserver;
 }

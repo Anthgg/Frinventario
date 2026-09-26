@@ -145,10 +145,39 @@
 
 .user {
   display: flex;
-  align-items: center;
-  gap: var(--sp-3);
+  flex-direction: column;
+  gap: var(--sp-2);
   padding: var(--sp-2);
   border-radius: var(--r-ctrl);
+}
+
+.userRow {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+
+.logoutError {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-2);
+  border: 1px solid rgba(224, 92, 76, 0.4);
+  border-radius: var(--r-ctrl);
+  background: rgba(224, 92, 76, 0.12);
+}
+
+.logoutErrorText {
+  font-size: var(--fs-caption);
+  color: var(--tiza);
+  line-height: 1.5;
+}
+
+.logoutErrorActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
 }
 
 .avatar {
@@ -270,11 +299,18 @@
   flex: none;
 }
 
+.connBadge {
+  flex: none;
+}
+
+/* Full workspace: la vista ocupa TODO el ancho útil tras sidebar/rail.
+   Sin max-width global ni contenedor centrado (regla FF001). */
 .content {
   flex: 1;
   width: 100%;
-  max-width: 1240px;
-  margin: 0 auto;
+  max-width: none;
+  min-width: 0;
+  margin: 0;
   padding: var(--sp-6) var(--sp-6) var(--sp-16);
 }
 
@@ -426,7 +462,8 @@
 
   .crumbs,
   .topbarUser,
-  .mockBadge {
+  .mockBadge,
+  .connBadge {
     display: none;
   }
 

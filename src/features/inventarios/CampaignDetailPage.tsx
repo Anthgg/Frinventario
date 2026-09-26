@@ -1,6 +1,7 @@
 import { Link, useParams } from 'react-router-dom';
 import { EyeOff } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { PageShell } from '@/components/layout/PageShell';
 import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
@@ -24,7 +25,7 @@ export function CampaignDetailPage() {
   }
 
   return (
-    <>
+    <PageShell>
       <PageHeader
         title={campaign.name}
         description={
@@ -119,6 +120,6 @@ export function CampaignDetailPage() {
           ]}
         />
       </div>
-    </>
+    </PageShell>
   );
 }

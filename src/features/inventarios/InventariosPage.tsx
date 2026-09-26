@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { PageShell } from '@/components/layout/PageShell';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/State';
 import {
@@ -32,7 +33,7 @@ export function InventariosPage() {
   );
 
   return (
-    <>
+    <PageShell>
       <PageHeader
         title="Inventarios"
         description="Campañas de conteo: quién las tiene, en qué estado están y cuánto se ha registrado."
@@ -91,6 +92,6 @@ export function InventariosPage() {
           ))}
         </ul>
       )}
-    </>
+    </PageShell>
   );
 }

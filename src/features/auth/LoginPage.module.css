@@ -28,21 +28,16 @@
   gap: var(--sp-4);
 }
 
-.divider {
+.messages {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: var(--sp-3);
-  margin: var(--sp-5) 0;
-  color: var(--humo);
-  font-size: var(--fs-caption);
+  margin-bottom: var(--sp-4);
 }
 
-.divider::before,
-.divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--filo);
+.messages:empty {
+  display: none;
+  margin-bottom: 0;
 }
 
 .note {

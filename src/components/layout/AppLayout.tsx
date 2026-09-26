@@ -1,11 +1,20 @@
 import { LogOut, Menu } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { useConnectionStatus } from '@/api/connection';
+import { ApiError } from '@/api/errors';
 import { BrandMark, Wordmark } from '@/components/BrandMark';
 import { Badge } from '@/components/ui/Badge';
-import { IconButton } from '@/components/ui/Button';import { Drawer } from '@/components/ui/Dialog';
+import { Button, IconButton } from '@/components/ui/Button';
+import { Drawer } from '@/components/ui/Dialog';
 import { useAuth } from '@/auth/AuthProvider';
-import { BOTTOM_NAV, findNavItem, NAV_ITEMS, titleFor } from '@/routes/navigation';
+import { primaryRoleLabel } from '@/auth/roles';
+import {
+  bottomNavItems,
+  findNavItem,
+  titleFor,
+  visibleNavItems,
+} from '@/routes/navigation';
 import { SaveIndicator } from './SaveIndicator';
 import styles from './AppLayout.module.css';
 
@@ -15,43 +24,97 @@ const SECTIONS: { id: 'operacion' | 'control' | 'sistema'; label: string }[] = [
   { id: 'sistema', label: 'Sistema' },
 ];
 
+/** Indicador discreto de conexión con el API (no es el offline de FF004). */
+function ConnectionIndicator() {
+  const state = useConnectionStatus();
+  if (state === 'unknown') return null;
+  return (
+    <Badge
+      tone={state === 'online' ? 'success' : 'danger'}
+      dot
+      className={styles.connBadge}
+    >
+      {state === 'online' ? 'Conectado' : 'Sin conexión'}
+    </Badge>
+  );
+}
+
 function UserBlock({ compact = false }: { compact?: boolean }) {
-  const { user, isDemo, logout } = useAuth();
-  const initial = (user?.display_name ?? user?.email ?? '?').trim().charAt(0).toUpperCase();
+  const { user, roles, logout, endLocalSession } = useAuth();
+  const [logoutError, setLogoutError] = useState<string | null>(null);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const name = user?.display_name?.trim() || user?.email || 'Sin sesión';
+  const initial = name.trim().charAt(0).toUpperCase();
+  const roleLabel = primaryRoleLabel(roles);
+  const secondary = roleLabel ?? user?.email ?? '';
+
+  async function handleLogout() {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    setLogoutError(null);
+    try {
+      await logout();
+    } catch (caught) {
+      setLogoutError(ApiError.from(caught).message);
+    } finally {
+      setLoggingOut(false);
+    }
+  }
 
   return (
     <div className={[styles.user, compact ? styles.userCompact : ''].filter(Boolean).join(' ')}>
-      <span className={styles.avatar} aria-hidden="true">
-        {initial}
-      </span>
-      <div className={styles.userText}>
-        <p className={styles.userName}>{user?.display_name ?? 'Sin sesión'}</p>
-        <p className={styles.userRole}>{isDemo ? 'Sesión demo · UI_MOCK' : (user?.email ?? '')}</p>
+      <div className={styles.userRow}>
+        <span className={styles.avatar} aria-hidden="true">
+          {initial}
+        </span>
+        <div className={styles.userText}>
+          <p className={styles.userName}>{name}</p>
+          <p className={styles.userRole}>{secondary}</p>
+        </div>
+        <IconButton
+          label="Cerrar sesión"
+          size="sm"
+          loading={loggingOut}
+          onClick={() => {
+            void handleLogout();
+          }}
+        >
+          <LogOut size={15} />
+        </IconButton>
       </div>
-      <IconButton
-        label="Cerrar sesión"
-        size="sm"
-        onClick={() => {
-          void logout();
-        }}
-      >
-        <LogOut size={15} />
-      </IconButton>
+
+      {logoutError ? (
+        <div className={styles.logoutError} role="alert">
+          <p className={styles.logoutErrorText}>
+            No se pudo cerrar la sesión en el servidor. Inténtalo de nuevo.
+          </p>
+          <div className={styles.logoutErrorActions}>
+            <Button size="sm" variant="secondary" onClick={() => void handleLogout()}>
+              Reintentar
+            </Button>
+            <Button size="sm" variant="ghost" onClick={endLocalSession}>
+              Salir en este dispositivo
+            </Button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
 
-function SidebarNav() {
+function SidebarNav({ granted }: { granted: readonly string[] }) {
+  const items = visibleNavItems(undefined, granted);
   return (
     <nav className={styles.nav} aria-label="Navegación principal">
       {SECTIONS.map((section) => {
-        const items = NAV_ITEMS.filter((item) => item.section === section.id);
-        if (items.length === 0) return null;
+        const sectionItems = items.filter((item) => item.section === section.id);
+        if (sectionItems.length === 0) return null;
         return (
           <div key={section.id} className={styles.section}>
             <p className={styles.sectionTitle}>{section.label}</p>
             <ul className={styles.sectionList}>
-              {items.map(({ to, label, icon: Icon, end }) => (
+              {sectionItems.map(({ to, label, icon: Icon, end }) => (
                 <li key={to}>
                   <NavLink
                     to={to}
@@ -78,14 +141,16 @@ function MoreDrawer({
   open,
   onOpenChange,
   returnFocus,
+  granted,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   returnFocus: () => void;
+  granted: readonly string[];
 }) {
-  const extra = NAV_ITEMS.filter(
-    (item) => !BOTTOM_NAV.some((bottom) => bottom.to === item.to),
-  );
+  const visible = visibleNavItems(undefined, granted);
+  const primary = new Set(bottomNavItems(granted).map((item) => item.to));
+  const extra = visible.filter((item) => !primary.has(item.to));
 
   return (
     <Drawer
@@ -122,6 +187,7 @@ function MoreDrawer({
 
 export function AppLayout() {
   const { pathname } = useLocation();
+  const { permissions } = useAuth();
   const [moreOpen, setMoreOpen] = useState(false);
   const moreTriggerRef = useRef<HTMLButtonElement>(null);
   const title = titleFor(pathname);
@@ -130,6 +196,8 @@ export function AppLayout() {
     ? (SECTIONS.find((section) => section.id === active.section)?.label ?? '')
     : '';
   const crumbs = ['Dedalo', sectionLabel, title].filter(Boolean);
+  const granted = permissions;
+  const bottomItems = bottomNavItems(granted);
 
   return (
     <div className={styles.shell}>
@@ -142,7 +210,7 @@ export function AppLayout() {
           <BrandMark size={26} />
           <Wordmark />
         </div>
-        <SidebarNav />
+        <SidebarNav granted={granted} />
         <div className={styles.sidebarFoot}>
           <UserBlock />
         </div>
@@ -173,6 +241,7 @@ export function AppLayout() {
             <Badge tone="hilo" className={styles.mockBadge}>
               UI_MOCK
             </Badge>
+            <ConnectionIndicator />
             <SaveIndicator state="saved" />
             <span className={styles.topbarUser}>
               <UserBlock compact />
@@ -198,7 +267,7 @@ export function AppLayout() {
       </div>
 
       <nav className={styles.bottomNav} aria-label="Navegación principal (móvil)">
-        {BOTTOM_NAV.map(({ to, label, mobileLabel, icon: Icon, end }) => (
+        {bottomItems.map(({ to, label, mobileLabel, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}
@@ -232,6 +301,7 @@ export function AppLayout() {
         open={moreOpen}
         onOpenChange={setMoreOpen}
         returnFocus={() => moreTriggerRef.current?.focus()}
+        granted={granted}
       />
     </div>
   );

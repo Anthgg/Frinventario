@@ -1,11 +1,16 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { renderApp, seedSession } from './helpers';
+import { renderApp, seedRefreshToken, stubAuthBackend, TEST_ME } from './helpers';
+
+function seedAuthenticated(): void {
+  stubAuthBackend();
+  seedRefreshToken();
+}
 
 describe('AppLayout', () => {
   it('muestra barra lateral, topbar y contenido', async () => {
-    seedSession();
+    seedAuthenticated();
     renderApp('/app/dashboard');
 
     const nav = await screen.findByRole('navigation', { name: /navegación principal$/i });
@@ -17,16 +22,28 @@ describe('AppLayout', () => {
     expect(screen.getAllByText('UI_MOCK').length).toBeGreaterThan(0);
   });
 
+  it('identidad real en la cabecera: display_name y rol, sin IDs internos', async () => {
+    seedAuthenticated();
+    renderApp('/app/dashboard');
+
+    expect(await screen.findByRole('heading', { name: 'Dashboard', level: 1 })).toBeInTheDocument();
+    expect(screen.getAllByText(TEST_ME.display_name).length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Supervisor').length).toBeGreaterThan(0);
+    expect(screen.queryByText(/operador demo/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(TEST_ME.id)).not.toBeInTheDocument();
+    expect(screen.queryByText(/sesión demo/i)).not.toBeInTheDocument();
+  });
+
   it('marca la ruta activa con aria-current', async () => {
-    seedSession();
+    seedAuthenticated();
     renderApp('/app/inventarios');
 
     const link = await screen.findByRole('link', { name: 'Inventarios' });
     expect(link).toHaveAttribute('aria-current', 'page');
   });
 
-  it('enlaza todas las secciones del sistema', async () => {
-    seedSession();
+  it('enlaza todas las secciones concedidas por /auth/me', async () => {
+    seedAuthenticated();
     renderApp('/app/dashboard');
 
     const nav = await screen.findByRole('navigation', { name: /navegación principal$/i });
@@ -43,8 +60,20 @@ describe('AppLayout', () => {
     }
   });
 
+  it('oculta secciones cuyo permiso /auth/me no concedió', async () => {
+    stubAuthBackend({ me: { ...TEST_ME, permissions: ['inventory.read'] } });
+    seedRefreshToken();
+    renderApp('/app/dashboard');
+
+    const nav = await screen.findByRole('navigation', { name: /navegación principal$/i });
+    expect(within(nav).getByRole('link', { name: 'Inventarios' })).toBeInTheDocument();
+    expect(within(nav).queryByRole('link', { name: 'Configuración' })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole('link', { name: 'Documentos' })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole('link', { name: 'Conteo' })).not.toBeInTheDocument();
+  });
+
   it('ofrece enlace para saltar al contenido', async () => {
-    seedSession();
+    seedAuthenticated();
     renderApp('/app/dashboard');
 
     expect(await screen.findByRole('link', { name: /saltar al contenido/i })).toHaveAttribute(
@@ -56,7 +85,7 @@ describe('AppLayout', () => {
 
 describe('navegación mobile', () => {
   it('renderiza la barra inferior con los destinos primarios', async () => {
-    seedSession();
+    seedAuthenticated();
     renderApp('/app/dashboard');
 
     const bottom = await screen.findByRole('navigation', {
@@ -69,7 +98,7 @@ describe('navegación mobile', () => {
   });
 
   it('el botón Más abre el cajón con el resto de secciones', async () => {
-    seedSession();
+    seedAuthenticated();
     const user = userEvent.setup();
     renderApp('/app/dashboard');
 
@@ -84,7 +113,7 @@ describe('navegación mobile', () => {
   });
 
   it('asocia la descripción del cajón y devuelve el foco al activador tras Escape', async () => {
-    seedSession();
+    seedAuthenticated();
     const user = userEvent.setup();
     renderApp('/app/dashboard');
 
@@ -106,7 +135,7 @@ describe('navegación mobile', () => {
   });
 
   it('desde el cajón se puede navegar a una sección', async () => {
-    seedSession();
+    seedAuthenticated();
     const user = userEvent.setup();
     renderApp('/app/dashboard');
 

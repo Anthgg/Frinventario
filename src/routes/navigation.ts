@@ -8,6 +8,7 @@ import {
   Scale,
   Settings,
 } from 'lucide-react';
+import { hasPermission, type PermissionInput } from '@/auth/permissions';
 
 export interface NavItem {
   to: string;
@@ -18,6 +19,11 @@ export interface NavItem {
   /** En mobile aparece en el cajón "Más"; en desktop, en la barra. */
   section: 'operacion' | 'control' | 'sistema';
   end?: boolean;
+  /**
+   * Permiso requerido para que el ítem sea visible. Sale del catálogo del
+   * backend (GET /auth/me); sin permiso definido = visible para toda sesión.
+   */
+  permission?: PermissionInput;
 }
 
 /** IDs de demo (FF000): las rutas del contrato exigen parámetros. */
@@ -39,25 +45,57 @@ export const NAV_ITEMS: NavItem[] = [
     mobileLabel: 'Campañas',
     icon: Boxes,
     section: 'operacion',
+    permission: 'inventory.read',
   },
-  { to: `/app/conteo/${DEMO_SESSION_ID}`, label: 'Conteo', icon: ScanLine, section: 'operacion' },
-  { to: '/app/reconteos', label: 'Reconteos', icon: RotateCcw, section: 'operacion' },
+  {
+    to: `/app/conteo/${DEMO_SESSION_ID}`,
+    label: 'Conteo',
+    icon: ScanLine,
+    section: 'operacion',
+    permission: 'inventory.count',
+  },
+  {
+    to: '/app/reconteos',
+    label: 'Reconteos',
+    icon: RotateCcw,
+    section: 'operacion',
+    permission: 'inventory.recount',
+  },
   {
     to: `/app/conciliacion/${DEMO_CAMPAIGN_ID}`,
     label: 'Conciliación',
     icon: Scale,
     section: 'control',
+    permission: 'inventory.reconcile',
   },
-  { to: '/app/documentos', label: 'Documentos', icon: FileText, section: 'control' },
-  { to: '/app/configuracion', label: 'Configuración', icon: Settings, section: 'sistema' },
+  {
+    to: '/app/documentos',
+    label: 'Documentos',
+    icon: FileText,
+    section: 'control',
+    permission: 'exports.read',
+  },
+  {
+    to: '/app/configuracion',
+    label: 'Configuración',
+    icon: Settings,
+    section: 'sistema',
+    permission: 'system.manage',
+  },
 ];
 
-/** Navegación principal de mobile: 4 destinos + cajón "Más". */
-export const BOTTOM_NAV: NavItem[] = [
-  NAV_ITEMS[0] as NavItem,
-  NAV_ITEMS[1] as NavItem,
-  NAV_ITEMS[2] as NavItem,
-];
+/** Filtra la navegación con los permisos reales de /auth/me. */
+export function visibleNavItems(
+  items: readonly NavItem[] = NAV_ITEMS,
+  granted: readonly string[] = [],
+): NavItem[] {
+  return items.filter((item) => item.permission === undefined || hasPermission(granted, item.permission));
+}
+
+/** Navegación principal de mobile: primeros destinos + cajón "Más". */
+export function bottomNavItems(granted: readonly string[] = []): NavItem[] {
+  return visibleNavItems(NAV_ITEMS, granted).slice(0, 3);
+}
 
 export function findNavItem(pathname: string): NavItem | undefined {
   let best: NavItem | undefined;

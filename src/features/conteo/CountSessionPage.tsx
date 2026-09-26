@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { AlertTriangle, Check, Minus, Plus, Square } from 'lucide-react';
 import { SaveIndicator } from '@/components/layout/SaveIndicator';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { PageShell } from '@/components/layout/PageShell';
 import { Badge } from '@/components/ui/Badge';
 import { Button, IconButton } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -35,7 +36,7 @@ export function CountSessionPage() {
   }
 
   return (
-    <>
+    <PageShell>
       <PageHeader
         title="Conteo"
         description="Sesión de campo: escanea o busca, registra la cantidad y sigue."
@@ -162,7 +163,7 @@ export function CountSessionPage() {
         open={finishOpen}
         onOpenChange={setFinishOpen}
         title="¿Finalizar la sesión?"
-        description="El cierre real de sesión y la sincronización llegan en FF001. Aquí solo se valida la interacción."
+        description="El cierre real de sesión y la sincronización llegan en una fase posterior. Aquí solo se valida la interacción."
         closeLabel="Cerrar"
         footer={
           <>
@@ -180,6 +181,6 @@ export function CountSessionPage() {
           <span className="mono">{sessionId ?? 'ses-001'}</span>.
         </p>
       </Dialog>
-    </>
+    </PageShell>
   );
 }

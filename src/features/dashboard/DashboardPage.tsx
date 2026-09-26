@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowUpRight, ScanLine } from 'lucide-react';
 import { useAuth } from '@/auth/AuthProvider';
 import { PageHeader } from '@/components/layout/PageHeader';
+import { PageShell } from '@/components/layout/PageShell';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -31,7 +32,7 @@ export function DashboardPage() {
   const enCurso = activas[0];
 
   return (
-    <>
+    <PageShell>
       <PageHeader
         title="Dashboard"
         description={`Operación de conteo en curso, ${user?.display_name ?? 'invitado'}.`}
@@ -156,6 +157,6 @@ export function DashboardPage() {
           )}
         </Card>
       </section>
-    </>
+    </PageShell>
   );
 }

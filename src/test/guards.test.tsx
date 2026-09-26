@@ -3,7 +3,12 @@ import { Route, Routes } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { AuthProvider } from '@/auth/AuthProvider';
 import { RequireAuth, RequirePermission } from '@/auth/guards';
-import { renderWithRouter, seedSession, TEST_SESSION } from './helpers';
+import { renderWithRouter, seedRefreshToken, stubAuthBackend, TEST_ME } from './helpers';
+
+function seedAuthenticated(): void {
+  stubAuthBackend();
+  seedRefreshToken();
+}
 
 function GuardsTree() {
   return (
@@ -49,53 +54,65 @@ function GuardsTree() {
 
 describe('RequireAuth', () => {
   it('redirige al login sin sesión', async () => {
-    seedSession(null);
+    seedRefreshToken(null);
     renderWithRouter(<GuardsTree />, '/privado');
 
     expect(await screen.findByText('pantalla de login')).toBeInTheDocument();
     expect(screen.queryByText('area privada')).not.toBeInTheDocument();
   });
 
-  it('permite el paso con sesión activa', async () => {
-    seedSession();
+  it('permite el paso con sesión restaurada (refresh + me)', async () => {
+    seedAuthenticated();
     renderWithRouter(<GuardsTree />, '/privado');
 
     expect(await screen.findByText('area privada')).toBeInTheDocument();
   });
+
+  it('muestra estado de carga mientras resuelve el bootstrap', () => {
+    seedRefreshToken();
+    stubAuthBackend({ pendingRefresh: true });
+
+    renderWithRouter(<GuardsTree />, '/privado');
+
+    expect(screen.getByRole('status')).toHaveTextContent(/cargando sesión/i);
+    expect(screen.queryByText('pantalla de login')).not.toBeInTheDocument();
+  });
 });
 
 describe('RequirePermission', () => {
-  it('permite el módulo cuando el backend concedió el permiso', async () => {
-    seedSession();
+  it('permite el módulo cuando /auth/me concedió el permiso', async () => {
+    seedAuthenticated();
     renderWithRouter(<GuardsTree />, '/con-permiso');
 
     expect(await screen.findByText('modulo con permiso')).toBeInTheDocument();
   });
 
-  it('muestra acceso restringido sin el permiso', async () => {
-    seedSession();
+  it('muestra acceso restringido sin el permiso (403, no login)', async () => {
+    seedAuthenticated();
     renderWithRouter(<GuardsTree />, '/sin-permiso');
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/acceso restringido/i);
     expect(screen.queryByText('modulo restringido')).not.toBeInTheDocument();
+    expect(screen.queryByText('pantalla de login')).not.toBeInTheDocument();
   });
 
   it('anyOf acepta cualquiera de la lista', async () => {
-    seedSession();
+    seedAuthenticated();
     renderWithRouter(<GuardsTree />, '/permiso-auxiliar');
 
     expect(await screen.findByText('modulo auxiliar')).toBeInTheDocument();
   });
 
   it('sin sesión va al login antes de evaluar permisos', async () => {
-    seedSession(null);
+    seedRefreshToken(null);
     renderWithRouter(<GuardsTree />, '/sin-permiso');
 
     expect(await screen.findByText('pantalla de login')).toBeInTheDocument();
   });
 
   it('una sesión sin permisos no pasa', async () => {
-    seedSession({ ...TEST_SESSION, permissions: [] });
+    stubAuthBackend({ me: { ...TEST_ME, permissions: [] } });
+    seedRefreshToken();
     renderWithRouter(<GuardsTree />, '/con-permiso');
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/acceso restringido/i);

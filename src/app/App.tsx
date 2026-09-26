@@ -19,9 +19,9 @@ import {
 } from '@/features/misc/PlaceholderPages';
 
 /**
- * Mapa de rutas (FF000): todas navegables con placeholders reales.
- * Los guards de permiso se aplican en los módulos de control; los módulos
- * restantes se restringen cuando el backend los entregue.
+ * Mapa de rutas (FF001): sesión REAL vía /auth/me.
+ * Cada módulo exige el permiso que su endpoint del backend exige; sin permiso
+ * se muestra 403 (nunca se redirige al login de un usuario ya autenticado).
  */
 export function AppRoutes() {
   return (
@@ -41,9 +41,30 @@ export function AppRoutes() {
       >
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
-        <Route path="inventarios" element={<InventariosPage />} />
-        <Route path="inventarios/:campaignId" element={<CampaignDetailPage />} />
-        <Route path="conteo/:sessionId" element={<CountSessionPage />} />
+        <Route
+          path="inventarios"
+          element={
+            <RequirePermission permission="inventory.read">
+              <InventariosPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="inventarios/:campaignId"
+          element={
+            <RequirePermission permission="inventory.read">
+              <CampaignDetailPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="conteo/:sessionId"
+          element={
+            <RequirePermission permission="inventory.count">
+              <CountSessionPage />
+            </RequirePermission>
+          }
+        />
         <Route
           path="reconteos"
           element={
@@ -60,8 +81,22 @@ export function AppRoutes() {
             </RequirePermission>
           }
         />
-        <Route path="documentos" element={<DocumentsPage />} />
-        <Route path="configuracion" element={<ConfiguracionPage />} />
+        <Route
+          path="documentos"
+          element={
+            <RequirePermission permission="exports.read">
+              <DocumentsPage />
+            </RequirePermission>
+          }
+        />
+        <Route
+          path="configuracion"
+          element={
+            <RequirePermission permission="system.manage">
+              <ConfiguracionPage />
+            </RequirePermission>
+          }
+        />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
 

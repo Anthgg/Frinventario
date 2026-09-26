@@ -18,6 +18,18 @@ describe('resolveBaseUrl (env)', () => {
     ).toBe('http://localhost:8000/api/v1');
   });
 
+  it('una base solo-host recibe el prefijo (nunca /api/v1/api/v1)', () => {
+    expect(resolveBaseUrl({ VITE_API_BASE_URL: 'http://127.0.0.1:8000' })).toBe(
+      'http://127.0.0.1:8000/api/v1',
+    );
+    expect(resolveBaseUrl({ VITE_API_BASE_URL: 'http://127.0.0.1:8000/' })).toBe(
+      'http://127.0.0.1:8000/api/v1',
+    );
+    expect(resolveBaseUrl({ VITE_API_BASE_URL: 'https://api.ejemplo.com/api/v1' })).toBe(
+      'https://api.ejemplo.com/api/v1',
+    );
+  });
+
   it('sin variables cae al prefijo por defecto', () => {
     expect(resolveBaseUrl({})).toBe('/api/v1');
   });

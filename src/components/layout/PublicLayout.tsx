@@ -15,7 +15,7 @@ export function PublicLayout() {
       </main>
       <footer className={styles.footer}>
         <span>Inventario Dedalo</span>
-        <span className="mono">FF000 · foundation</span>
+        <span className="mono">FF001 · auth real</span>
       </footer>
     </div>
   );

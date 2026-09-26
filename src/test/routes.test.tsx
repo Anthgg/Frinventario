@@ -1,80 +1,192 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
-import { renderApp, seedSession, TEST_SESSION } from './helpers';
+import { describe, expect, it } from 'vitest';
+import {
+  renderApp,
+  REFRESH_TOKEN_KEY,
+  seedRefreshToken,
+  stubAuthBackend,
+  TEST_ACCESS_TOKEN,
+} from './helpers';
 
-describe('routing', () => {
+describe('routing con sesión real', () => {
   it('redirige /app sin sesión hacia /login', async () => {
-    seedSession(null);
+    seedRefreshToken(null);
     renderApp('/app/dashboard');
 
     expect(await screen.findByRole('heading', { name: 'Iniciar sesión' })).toBeInTheDocument();
   });
 
   it('la raíz lleva al dashboard de la sesión activa', async () => {
-    seedSession();
+    stubAuthBackend();
+    seedRefreshToken();
     renderApp('/');
 
     expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
   });
 
-  it('ignora una sesión real persistida antes de FF001', async () => {
-    seedSession({ ...TEST_SESSION, demo: false });
+  it('ignora sesiones persistidas en localStorage (solo cuenta refresh en sessionStorage)', async () => {
+    window.localStorage.setItem(
+      'dedalo.auth.session',
+      JSON.stringify({ user: { id: 'x' }, permissions: ['inventory.read'], demo: true }),
+    );
+    seedRefreshToken(null);
+    renderApp('/app/dashboard');
+
+    expect(await screen.findByRole('heading', { name: 'Iniciar sesión' })).toBeInTheDocument();
+  });
+});
+
+describe('login real', () => {
+  it('muestra el formulario y no ofrece acceso demo', async () => {
+    seedRefreshToken(null);
+    renderApp('/login');
+
+    expect(await screen.findByRole('heading', { name: 'Iniciar sesión' })).toBeInTheDocument();
+    expect(screen.getByLabelText(/correo/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^contraseña$/i)).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /modo demostración/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('envía credenciales, confirma identidad con /auth/me y entra al dashboard', async () => {
+    seedRefreshToken(null);
+    const { calls, fetchMock } = stubAuthBackend();
+    const user = userEvent.setup();
+    renderApp('/login');
+
+    await user.type(screen.getByLabelText(/correo/i), 'tester@dedalo.local');
+    await user.type(screen.getByLabelText(/^contraseña$/i), 'secreto-correcto');
+    await user.click(screen.getByRole('button', { name: /ingresar/i }));
+
+    expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
+
+    const loginCall = calls.find((call) => call.url.endsWith('/auth/login'));
+    expect(loginCall).toMatchObject({
+      method: 'POST',
+      body: { email: 'tester@dedalo.local', password: 'secreto-correcto' },
+    });
+
+    // La identidad oficial siempre se confirma con /auth/me + bearer.
+    const meCall = calls.find((call) => call.url.endsWith('/auth/me'));
+    expect(meCall?.headers.Authorization).toBe(`Bearer ${TEST_ACCESS_TOKEN}`);
+
+    // Ninguna request duplicada inesperada.
+    expect(fetchMock.mock.calls.length).toBe(2);
+
+    // El access token jamás se persiste; solo el refresh token.
+    expect(window.sessionStorage.getItem(REFRESH_TOKEN_KEY)).toBeTruthy();
+    expect(window.sessionStorage.getItem('dedalo.auth.access')).toBeNull();
+    expect(window.localStorage.length).toBe(0);
+  });
+
+  it('credenciales inválidas: mensaje genérico, sin enumerar usuarios', async () => {
+    seedRefreshToken(null);
+    stubAuthBackend({ loginStatus: 401 });
+    const user = userEvent.setup();
+    renderApp('/login');
+
+    await user.type(screen.getByLabelText(/correo/i), 'alguien@empresa.com');
+    await user.type(screen.getByLabelText(/^contraseña$/i), 'mal');
+    await user.click(screen.getByRole('button', { name: /ingresar/i }));
+
+    expect(await screen.findByText('Correo o contraseña incorrectos.')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Dashboard' })).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/correo/i)).toHaveValue('alguien@empresa.com');
+  });
+
+  it('sin backend muestra error de conexión, no credenciales inválidas', async () => {
+    seedRefreshToken(null);
+    stubAuthBackend({ networkError: true });
+    const user = userEvent.setup();
+    renderApp('/login');
+
+    await user.type(screen.getByLabelText(/correo/i), 'tester@dedalo.local');
+    await user.type(screen.getByLabelText(/^contraseña$/i), 'secreto');
+    await user.click(screen.getByRole('button', { name: /ingresar/i }));
+
+    expect(await screen.findByText('No se pudo conectar con el servidor.')).toBeInTheDocument();
+    expect(screen.queryByText(/incorrectos/i)).not.toBeInTheDocument();
+  });
+
+  it('valida campos vacíos sin llamar a la API', async () => {
+    seedRefreshToken(null);
+    const { fetchMock } = stubAuthBackend();
+    const user = userEvent.setup();
+    renderApp('/login');
+
+    await user.click(screen.getByRole('button', { name: /ingresar/i }));
+
+    expect(await screen.findByText('Ingresa tu correo.')).toBeInTheDocument();
+    expect(screen.getByText('Ingresa tu contraseña.')).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('logout real', () => {
+  it('cierra en el servidor, limpia storage y vuelve al login', async () => {
+    stubAuthBackend();
+    seedRefreshToken();
+    const user = userEvent.setup();
+    renderApp('/app/dashboard');
+
+    await screen.findByRole('heading', { name: 'Dashboard' });
+    await user.click(screen.getAllByRole('button', { name: 'Cerrar sesión' })[0]!);
+
+    expect(await screen.findByRole('heading', { name: 'Iniciar sesión' })).toBeInTheDocument();
+    expect(window.sessionStorage.getItem(REFRESH_TOKEN_KEY)).toBeNull();
+    expect(window.localStorage.length).toBe(0);
+  });
+
+  it('tras cerrar sesión, un render nuevo sigue anónimo (equivalente a F5)', async () => {
+    stubAuthBackend();
+    seedRefreshToken();
+    const user = userEvent.setup();
+    const first = renderApp('/app/dashboard');
+
+    await screen.findByRole('heading', { name: 'Dashboard' });
+    await user.click(screen.getAllByRole('button', { name: 'Cerrar sesión' })[0]!);
+    await screen.findByRole('heading', { name: 'Iniciar sesión' });
+    first.unmount();
+
     renderApp('/app/dashboard');
 
     expect(await screen.findByRole('heading', { name: 'Iniciar sesión' })).toBeInTheDocument();
   });
 
-  it('el login muestra el formulario y el acceso demo', () => {
-    seedSession(null);
-    renderApp('/login');
-
-    expect(screen.getByLabelText(/correo/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/^contraseña$/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /modo demostración/i })).toBeInTheDocument();
-  });
-
-  it('la sesión demo entra y navega al dashboard', async () => {
-    seedSession(null);
+  it('si el backend responde 502 ofrece reintento y NO afirma sesión cerrada', async () => {
+    stubAuthBackend({ logoutStatus: 502 });
+    seedRefreshToken();
     const user = userEvent.setup();
-    renderApp('/login');
+    renderApp('/app/dashboard');
 
-    await user.click(screen.getByRole('button', { name: /modo demostración/i }));
-
-    expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
-  });
-
-  it('el formulario usa sesión UI_MOCK y no envía credenciales a la API', async () => {
-    seedSession(null);
-    const fetchSpy = vi.spyOn(globalThis, 'fetch');
-    const user = userEvent.setup();
-    renderApp('/login');
-
-    await user.type(screen.getByLabelText(/correo/i), 'mock@example.test');
-    await user.type(screen.getByLabelText(/^contraseña$/i), 'not-a-real-secret');
-    await user.click(screen.getByRole('button', { name: /ingresar/i }));
-
-    expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
-    expect(screen.getAllByText('Sesión demo · UI_MOCK')).not.toHaveLength(0);
-    expect(fetchSpy).not.toHaveBeenCalled();
-
+    await screen.findByRole('heading', { name: 'Dashboard' });
     await user.click(screen.getAllByRole('button', { name: 'Cerrar sesión' })[0]!);
-    expect(await screen.findByRole('heading', { name: 'Iniciar sesión' })).toBeInTheDocument();
-    expect(fetchSpy).not.toHaveBeenCalled();
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(/no se pudo cerrar la sesión en el servidor/i);
+    expect(within(alert).getByRole('button', { name: /reintentar/i })).toBeInTheDocument();
+    // La sesión local sigue viva: no se muestra un login falso.
+    expect(screen.queryByRole('heading', { name: 'Iniciar sesión' })).not.toBeInTheDocument();
+    expect(window.sessionStorage.getItem(REFRESH_TOKEN_KEY)).toBeTruthy();
   });
+});
 
-  const rutas: Array<[string, string]> = [
-    ['/app/inventarios', 'Inventarios'],
-    ['/app/inventarios/camp-001', 'Almacén central — línea A'],
-    ['/app/conteo/ses-001', 'Conteo'],
-    ['/app/reconteos', 'Reconteos'],
-    ['/app/conciliacion/camp-001', 'Conciliación'],
-    ['/app/documentos', 'Documentos'],
-    ['/app/configuracion', 'Configuración'],
-  ];
+const rutas: Array<[string, string]> = [
+  ['/app/inventarios', 'Inventarios'],
+  ['/app/inventarios/camp-001', 'Almacén central — línea A'],
+  ['/app/conteo/ses-001', 'Conteo'],
+  ['/app/reconteos', 'Reconteos'],
+  ['/app/conciliacion/camp-001', 'Conciliación'],
+  ['/app/documentos', 'Documentos'],
+  ['/app/configuracion', 'Configuración'],
+];
 
+describe('módulos con sesión', () => {
   it.each(rutas)('renderiza %s con sesión activa', async (path, heading) => {
-    seedSession();
+    stubAuthBackend();
+    seedRefreshToken();
     renderApp(path);
 
     expect(await screen.findByRole('heading', { name: heading, level: 1 })).toBeInTheDocument();
