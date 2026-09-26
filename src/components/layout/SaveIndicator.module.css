@@ -43,9 +43,9 @@
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 799px) {
   .label {
-    /* en mobile solo el color comunica; el texto va en aria-live */
+    /* en pantallas angostas solo el color comunica; el texto va en aria-live */
     position: absolute;
     width: 1px;
     height: 1px;
