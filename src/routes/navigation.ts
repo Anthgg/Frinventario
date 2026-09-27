@@ -100,7 +100,9 @@ export function bottomNavItems(granted: readonly string[] = []): NavItem[] {
 export function findNavItem(pathname: string): NavItem | undefined {
   let best: NavItem | undefined;
   for (const item of NAV_ITEMS) {
-    if (item.end ? pathname === item.to : pathname.startsWith(item.to)) {
+    const matchesCountSession =
+      item.to === `/app/conteo/${DEMO_SESSION_ID}` && /^\/app\/conteo\/[^/]+\/?$/.test(pathname);
+    if (matchesCountSession || (item.end ? pathname === item.to : pathname.startsWith(item.to))) {
       if (!best || item.to.length > best.to.length) best = item;
     }
   }

@@ -177,6 +177,7 @@ const rutas: Array<[string, string]> = [
   ['/app/inventarios', 'Inventarios'],
   ['/app/inventarios/camp-001', 'Almacén central — línea A'],
   ['/app/conteo/ses-001', 'Conteo'],
+  ['/app/conteo/mock', 'Conteo'],
   ['/app/reconteos', 'Reconteos'],
   ['/app/conciliacion/camp-001', 'Conciliación'],
   ['/app/documentos', 'Documentos'],
@@ -190,5 +191,6 @@ describe('módulos con sesión', () => {
     renderApp(path);
 
     expect(await screen.findByRole('heading', { name: heading, level: 1 })).toBeInTheDocument();
+    expect(screen.queryByText(/página no encontrada/i)).not.toBeInTheDocument();
   });
 });
