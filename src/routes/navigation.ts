@@ -108,5 +108,5 @@ export function findNavItem(pathname: string): NavItem | undefined {
 }
 
 export function titleFor(pathname: string): string {
-  return findNavItem(pathname)?.label ?? 'Dedalo';
+  return findNavItem(pathname)?.label ?? 'Página no encontrada';
 }

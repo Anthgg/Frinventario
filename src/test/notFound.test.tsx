@@ -30,6 +30,9 @@ describe('404', () => {
     renderApp('/app/desconocida');
 
     expect(await screen.findByText(/404 — fuera del laberinto/)).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: /ubicación/i })).toHaveTextContent(
+      'Página no encontrada',
+    );
     expect(screen.getByRole('navigation', { name: /navegación principal$/i })).toBeInTheDocument();
   });
 });
