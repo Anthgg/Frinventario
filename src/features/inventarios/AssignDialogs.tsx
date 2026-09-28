@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { ApiError } from '@/api/errors';
-import type { AdminUser, CampaignDetail } from '@/api/inventory';
+import type { AssigneeCandidatePage, CampaignDetail } from '@/api/inventory';
 import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
@@ -22,15 +22,11 @@ export interface AssignResponsibleDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   campaign: CampaignDetail;
-  /**
-   * false = la cuenta tiene inventory.assign pero no users.read: el backend
-   * exige el id del usuario y no hay endpoint de descubrimiento permitido.
-   */
-  canReadUsers: boolean;
-  users: AdminUser[];
-  usersLoading?: boolean;
-  usersError?: unknown;
-  onRetryUsers?: () => void;
+  candidatePage?: AssigneeCandidatePage;
+  candidatesLoading?: boolean;
+  candidatesError?: unknown;
+  onRetryCandidates?: () => void;
+  onCandidateOffsetChange: (offset: number) => void;
   pending?: boolean;
   error?: unknown;
   onSubmit: (userId: string) => void;
@@ -40,11 +36,11 @@ export function AssignResponsibleDialog({
   open,
   onOpenChange,
   campaign,
-  canReadUsers,
-  users,
-  usersLoading,
-  usersError,
-  onRetryUsers,
+  candidatePage,
+  candidatesLoading,
+  candidatesError,
+  onRetryCandidates,
+  onCandidateOffsetChange,
   pending,
   error,
   onSubmit,
@@ -62,7 +58,17 @@ export function AssignResponsibleDialog({
     onSubmit(userId);
   }
 
-  const activeUsers = users.filter((user) => user.is_active);
+  function changeCandidatePage(offset: number) {
+    setUserId('');
+    setUserIdError(undefined);
+    onCandidateOffsetChange(offset);
+  }
+
+  const candidates = candidatePage?.items ?? [];
+  const totalCandidates = candidatePage?.total ?? 0;
+  const offset = candidatePage?.offset ?? 0;
+  const limit = candidatePage?.limit ?? 50;
+  const lastVisibleCandidate = Math.min(offset + candidates.length, totalCandidates);
 
   return (
     <Dialog
@@ -72,95 +78,101 @@ export function AssignResponsibleDialog({
       description={`El responsable pasa a contar la campaña «${campaign.name}». Requiere permiso de conteo.`}
       closeLabel="Cerrar"
       footer={
-        canReadUsers ? (
-          <>
-            <Button variant="ghost" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button
-              variant="primary"
-              type="submit"
-              form="campaign-assign-form"
-              loading={pending}
-              disabled={usersLoading || Boolean(usersError)}
-            >
-              Asignar responsable
-            </Button>
-          </>
-        ) : (
-          <Button variant="secondary" onClick={() => onOpenChange(false)}>
-            Entendido
+        <>
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+            Cancelar
           </Button>
-        )
+          <Button
+            variant="primary"
+            type="submit"
+            form="campaign-assign-form"
+            loading={pending}
+            disabled={candidatesLoading || Boolean(candidatesError) || candidates.length === 0}
+          >
+            Asignar responsable
+          </Button>
+        </>
       }
     >
-      {!canReadUsers ? (
-        <div className={styles.form}>
-          <Alert tone="warning" title="Falta el directorio de usuarios">
-            Tu cuenta puede asignar responsables (permiso inventory.assign), pero no puede leer la
-            lista de usuarios (permiso users.read), y el backend exige el identificador del usuario
-            para asignar. Mientras eso no cambie, la asignación desde esta pantalla no está
-            disponible.
-          </Alert>
-          <p className={styles.hint}>
-            Un administrador con users.read puede hacerlo, o bien puede concederte ese permiso.
-          </p>
-        </div>
-      ) : (
-        <form id="campaign-assign-form" className={styles.form} onSubmit={handleSubmit} noValidate>
-          <ErrorAlert error={error} />
+      <form id="campaign-assign-form" className={styles.form} onSubmit={handleSubmit} noValidate>
+        <ErrorAlert error={error} />
 
-          {usersError ? (
-            <ErrorState
-              compact
-              error={usersError}
-              title="No pudimos cargar los usuarios"
-              description="Sin el directorio no podemos elegir responsable."
-              onRetry={onRetryUsers}
-            />
-          ) : usersLoading ? (
-            <p className={styles.hint}>Cargando usuarios…</p>
-          ) : activeUsers.length === 0 ? (
-            <EmptyState
-              compact
-              title="Sin usuarios disponibles"
-              description="No hay cuentas activas con las que asignar esta campaña."
-            />
-          ) : (
-            <div className={styles.field}>
-              <label className={styles.label} htmlFor="campaign-assign-user">
-                Usuario responsable
-              </label>
-              <select
-                id="campaign-assign-user"
-                className={styles.select}
-                value={userId}
-                aria-invalid={userIdError ? true : undefined}
-                onChange={(event) => {
-                  setUserId(event.target.value);
-                  if (userIdError) setUserIdError(undefined);
-                }}
+        {candidatesError ? (
+          <ErrorState
+            compact
+            error={candidatesError}
+            title="No pudimos cargar los responsables"
+            description="Sin la lista de personas elegibles no podemos asignar esta campaña."
+            onRetry={onRetryCandidates}
+          />
+        ) : candidatesLoading ? (
+          <p className={styles.hint}>Cargando responsables…</p>
+        ) : totalCandidates === 0 ? (
+          <EmptyState
+            compact
+            title="Sin responsables disponibles"
+            description="No hay cuentas activas con permiso de conteo."
+          />
+        ) : (
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="campaign-assign-user">
+              Usuario responsable
+            </label>
+            <select
+              id="campaign-assign-user"
+              className={styles.select}
+              value={userId}
+              aria-invalid={userIdError ? true : undefined}
+              onChange={(event) => {
+                setUserId(event.target.value);
+                if (userIdError) setUserIdError(undefined);
+              }}
+            >
+              <option value="">Selecciona una cuenta</option>
+              {candidates.map((candidate) => (
+                <option key={candidate.id} value={candidate.id}>
+                  {candidate.display_name}
+                  {candidate.email ? ` · ${candidate.email}` : ''}
+                </option>
+              ))}
+            </select>
+            {userIdError ? (
+              <p className={styles.error} role="alert">
+                {userIdError}
+              </p>
+            ) : (
+              <p className={styles.hint}>
+                Solo aparecen cuentas activas con permiso de conteo; el backend vuelve a validarlo.
+              </p>
+            )}
+            {candidatePage && totalCandidates > limit ? (
+              <div
+                className={styles.pagination}
+                role="group"
+                aria-label="Paginación de responsables"
               >
-                <option value="">Selecciona una cuenta</option>
-                {activeUsers.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.display_name} · {user.email}
-                  </option>
-                ))}
-              </select>
-              {userIdError ? (
-                <p className={styles.error} role="alert">
-                  {userIdError}
-                </p>
-              ) : (
-                <p className={styles.hint}>
-                  El backend valida que la cuenta tenga permiso inventory.count.
-                </p>
-              )}
-            </div>
-          )}
-        </form>
-      )}
+                <Button
+                  variant="ghost"
+                  disabled={offset === 0 || candidatesLoading}
+                  onClick={() => changeCandidatePage(Math.max(0, offset - limit))}
+                >
+                  Anteriores
+                </Button>
+                <span className={styles.hint} aria-live="polite">
+                  {offset + 1}–{lastVisibleCandidate} de {totalCandidates}
+                </span>
+                <Button
+                  variant="ghost"
+                  disabled={offset + candidates.length >= totalCandidates || candidatesLoading}
+                  onClick={() => changeCandidatePage(offset + limit)}
+                >
+                  Siguientes
+                </Button>
+              </div>
+            ) : null}
+          </div>
+        )}
+      </form>
     </Dialog>
   );
 }

@@ -1,5 +1,6 @@
 import type {
-  AdminUser,
+  AssigneeCandidate,
+  AssigneeCandidatePage,
   AssignmentHistoryItem,
   CampaignDetail,
   CampaignPage,
@@ -73,34 +74,37 @@ export const TEST_SOURCES: SnapshotSource[] = [
   },
 ];
 
-export const TEST_ADMINS_USERS: AdminUser[] = [
+export const TEST_ASSIGNEE_CANDIDATES: AssigneeCandidate[] = [
   {
     id: '44444444-4444-4444-8444-444444444444',
     email: 'rita.quispe@dedalo.local',
     display_name: 'R. Quispe',
-    is_active: true,
-    roles: ['OPERADOR'],
   },
   {
     id: '55555555-5555-4555-8555-555555555555',
     email: 'marco.torres@dedalo.local',
     display_name: 'M. Torres',
-    is_active: true,
-    roles: ['SUPERVISOR'],
   },
 ];
+
+export function testAssigneeCandidatePage(
+  items: AssigneeCandidate[] = TEST_ASSIGNEE_CANDIDATES,
+  overrides: Partial<AssigneeCandidatePage> = {},
+): AssigneeCandidatePage {
+  return { total: items.length, limit: 50, offset: 0, items, ...overrides };
+}
 
 export const TEST_HISTORY: AssignmentHistoryItem[] = [
   {
     assignment_id: '66666666-6666-4666-8666-666666666666',
-    user_id: TEST_ADMINS_USERS[1]!.id,
+    user_id: TEST_ASSIGNEE_CANDIDATES[1]!.id,
     status: 'ACTIVE',
     assigned_at: '2026-09-21T09:00:00-05:00',
     revoked_at: null,
   },
   {
     assignment_id: '77777777-7777-4777-8777-777777777777',
-    user_id: TEST_ADMINS_USERS[0]!.id,
+    user_id: TEST_ASSIGNEE_CANDIDATES[0]!.id,
     status: 'REVOKED',
     assigned_at: '2026-09-18T09:00:00-05:00',
     revoked_at: '2026-09-21T09:00:00-05:00',
@@ -115,13 +119,13 @@ interface InventoryRoutesOptions {
   locations?: Location[];
   sources?: SnapshotSource[];
   history?: AssignmentHistoryItem[];
-  users?: AdminUser[];
+  candidates?: AssigneeCandidatePage;
   myAssignments?: MyAssignment[];
   /** Mutaciones (POST/PATCH): se registran ANTES que las rutas de lectura. */
   mutations?: StubRoute[];
 }
 
-/** Rutas de /inventory y /admin listas para stubAuthBackend({ routes }). */
+/** Rutas de /inventory listas para stubAuthBackend({ routes }). */
 export function inventoryRoutes(options: InventoryRoutesOptions = {}): StubRoute[] {
   const mutations = options.mutations ?? [];
   const readRoutes: StubRoute[] = [];
@@ -160,8 +164,12 @@ export function inventoryRoutes(options: InventoryRoutesOptions = {}): StubRoute
       body: options.myAssignments,
     });
   }
-  if (options.users) {
-    readRoutes.push({ match: '/admin/users', method: 'GET', body: options.users });
+  if (options.candidates) {
+    readRoutes.push({
+      match: '/inventory/assignee-candidates',
+      method: 'GET',
+      body: options.candidates,
+    });
   }
 
   return [...mutations, ...readRoutes];

@@ -5,7 +5,7 @@ import { useAuth } from '@/auth/AuthProvider';
 import { PERMISSIONS, hasPermission } from '@/auth/permissions';
 import { ApiError } from '@/api/errors';
 import { useApiQuery } from '@/api/query';
-import { inventoryApi, listAdminUsers, type StartResult } from '@/api/inventory';
+import { inventoryApi, type StartResult } from '@/api/inventory';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { PageShell } from '@/components/layout/PageShell';
 import { Alert } from '@/components/ui/Alert';
@@ -46,7 +46,7 @@ type DialogName =
   | 'unassign';
 
 const HISTORY_LIMIT = 50;
-const USERS_LIMIT = 200;
+const ASSIGNEE_CANDIDATE_LIMIT = 50;
 
 const ASSIGNMENT_LABEL: Record<string, { label: string; tone: BadgeTone }> = {
   ACTIVE: { label: 'Activo', tone: 'success' },
@@ -109,8 +109,7 @@ export function CampaignDetailPage() {
   const canMonitor = hasPermission(permissions, PERMISSIONS.INVENTORY_MONITOR);
   const canClose = hasPermission(permissions, PERMISSIONS.INVENTORY_CLOSE);
   const canReopenPerm = hasPermission(permissions, PERMISSIONS.INVENTORY_REOPEN);
-  const canReadUsers = hasPermission(permissions, PERMISSIONS.USERS_READ);
-  const canListUsers = canAssign && canReadUsers;
+  const [assigneeOffset, setAssigneeOffset] = useState(0);
 
   const detailQuery = useApiQuery(
     campaignKeys.detail(campaignId),
@@ -137,11 +136,15 @@ export function CampaignDetailPage() {
     () => inventoryApi.listSnapshotSources({ limit: 200 }),
     { enabled: canCreate },
   );
-  // MANAGER tiene inventory.assign pero NO users.read: sin ese permiso ni se
-  // pide el directorio (el backend lo rechazaría igualmente).
-  const usersQuery = useApiQuery(campaignKeys.adminUsers, () => listAdminUsers({ limit: USERS_LIMIT }), {
-    enabled: canListUsers,
-  });
+  const candidatesQuery = useApiQuery(
+    campaignKeys.assigneeCandidates(assigneeOffset),
+    () =>
+      inventoryApi.assigneeCandidates({
+        limit: ASSIGNEE_CANDIDATE_LIMIT,
+        offset: assigneeOffset,
+      }),
+    { enabled: canAssign },
+  );
 
   const [dialog, setDialog] = useState<DialogName | null>(null);
   const [startPhase, setStartPhase] = useState<StartPhase>('confirm');
@@ -152,7 +155,8 @@ export function CampaignDetailPage() {
   const campaign = detailQuery.data;
   const locations = locationsQuery.data ?? [];
   const history = historyQuery.data;
-  const users = usersQuery.data ?? [];
+  const candidatePage = candidatesQuery.data;
+  const candidates = candidatePage?.items ?? [];
 
   const locationName = (locationId: string | null): string => {
     if (!locationId) return 'Sin ubicación';
@@ -160,7 +164,7 @@ export function CampaignDetailPage() {
   };
 
   const userName = (userId: string): string => {
-    const match = users.find((item) => item.id === userId);
+    const match = candidates.find((item) => item.id === userId);
     return match?.display_name ?? `${userId.slice(0, 8)}…`;
   };
 
@@ -204,6 +208,7 @@ export function CampaignDetailPage() {
   function openDialog(name: DialogName) {
     setActionError(null);
     setConflict(false);
+    if (name === 'assign') setAssigneeOffset(0);
     if (name === 'start') setStartPhase('confirm');
     setDialog(name);
   }
@@ -537,11 +542,11 @@ export function CampaignDetailPage() {
             if (!open) setDialog(null);
           }}
           campaign={campaign}
-          canReadUsers={canReadUsers}
-          users={users}
-          usersLoading={usersQuery.isLoading}
-          usersError={usersQuery.error}
-          onRetryUsers={usersQuery.refetch}
+          candidatePage={candidatePage}
+          candidatesLoading={candidatesQuery.isLoading}
+          candidatesError={candidatesQuery.error}
+          onRetryCandidates={candidatesQuery.refetch}
+          onCandidateOffsetChange={setAssigneeOffset}
           pending={pending}
           error={actionError}
           onSubmit={(userId) => void handleAssign(userId)}

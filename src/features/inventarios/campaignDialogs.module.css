@@ -18,6 +18,14 @@
   min-width: 0;
 }
 
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
 .span2 {
   grid-column: 1 / -1;
 }

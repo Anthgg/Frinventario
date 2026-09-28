@@ -16,7 +16,7 @@ export const campaignKeys = {
   locations: 'inventory.locations',
   sources: 'inventory.snapshot-sources',
   myAssignments: 'inventory.my-assignments',
-  adminUsers: 'admin.users',
+  assigneeCandidates: (offset: number) => `inventory.assignee-candidates::${offset}`,
 };
 
 /**

@@ -11,7 +11,7 @@ import {
 } from './helpers';
 import {
   inventoryRoutes,
-  TEST_ADMINS_USERS,
+  TEST_ASSIGNEE_CANDIDATES,
   TEST_CAMPAIGN_ID,
   TEST_HISTORY,
   TEST_LOCATION,
@@ -19,6 +19,7 @@ import {
   TEST_SOURCES,
   testCampaignDetail,
   testCampaignPage,
+  testAssigneeCandidatePage,
 } from './inventoryFixtures';
 
 /** Permisos de una cuenta administrativa completa (espejo del backend). */
@@ -51,7 +52,7 @@ function detailRoutes(extra: Partial<Parameters<typeof inventoryRoutes>[0]> = {}
     sources: TEST_SOURCES,
     history: TEST_HISTORY,
     myAssignments: TEST_MY_ASSIGNMENTS,
-    users: TEST_ADMINS_USERS,
+    candidates: testAssigneeCandidatePage(),
     ...extra,
   });
 }
@@ -323,7 +324,7 @@ describe('cancelar campaña', () => {
 });
 
 describe('responsable', () => {
-  it('con users.read lista usuarios y asigna con expected_version', async () => {
+  it('carga candidatos elegibles y asigna con expected_version', async () => {
     const { calls } = seedApp(`/app/inventarios/${TEST_CAMPAIGN_ID}`, ADMIN_PERMISSIONS, [
       ...detailRoutes({
         mutations: [
@@ -332,7 +333,7 @@ describe('responsable', () => {
             method: 'POST',
             body: {
               assignment_id: '88888888-8888-4888-8888-888888888888',
-              user_id: TEST_ADMINS_USERS[0]!.id,
+              user_id: TEST_ASSIGNEE_CANDIDATES[0]!.id,
               status: 'ACTIVE',
               created: true,
               reassigned: false,
@@ -346,8 +347,8 @@ describe('responsable', () => {
     await user.click(await screen.findByRole('button', { name: 'Asignar' }));
     const dialog = await screen.findByRole('dialog', { name: 'Asignar responsable' });
 
-    const select = within(dialog).getByLabelText(/usuario responsable/i);
-    await user.selectOptions(select, TEST_ADMINS_USERS[0]!.id);
+    const select = await within(dialog).findByLabelText(/usuario responsable/i);
+    await user.selectOptions(select, TEST_ASSIGNEE_CANDIDATES[0]!.id);
     await user.click(within(dialog).getByRole('button', { name: 'Asignar responsable' }));
 
     await screen.findByText('Responsable asignado');
@@ -359,27 +360,82 @@ describe('responsable', () => {
       return call!;
     });
     expect(assign.body).toMatchObject({
-      user_id: TEST_ADMINS_USERS[0]!.id,
+      user_id: TEST_ASSIGNEE_CANDIDATES[0]!.id,
       expected_version: 3,
     });
+    expect(calls.some((call) => call.url.includes('/inventory/assignee-candidates'))).toBe(true);
+    expect(calls.some((call) => call.url.includes('/admin/users'))).toBe(false);
   });
 
-  it('con inventory.assign pero sin users.read no pide el directorio (gap)', async () => {
+  it('MANAGER con inventory.assign puede asignar sin users.read', async () => {
     const { calls } = seedApp(
       `/app/inventarios/${TEST_CAMPAIGN_ID}`,
       MANAGER_PERMISSIONS,
-      detailRoutes({ users: undefined, history: undefined, sources: undefined }),
+      detailRoutes({
+        history: undefined,
+        sources: undefined,
+        mutations: [
+          {
+            match: '/assign',
+            method: 'POST',
+            body: {
+              assignment_id: '88888888-8888-4888-8888-888888888888',
+              user_id: TEST_ASSIGNEE_CANDIDATES[0]!.id,
+              status: 'ACTIVE',
+              created: true,
+              reassigned: false,
+            },
+          },
+        ],
+      }),
     );
 
     const user = userEvent.setup();
     await user.click(await screen.findByRole('button', { name: 'Asignar' }));
     const dialog = await screen.findByRole('dialog', { name: 'Asignar responsable' });
+    const select = await within(dialog).findByLabelText(/usuario responsable/i);
+    await user.selectOptions(select, TEST_ASSIGNEE_CANDIDATES[0]!.id);
+    await user.click(within(dialog).getByRole('button', { name: 'Asignar responsable' }));
 
-    expect(
-      await within(dialog).findByText(/no puede leer la lista de usuarios/i),
-    ).toBeInTheDocument();
-    expect(within(dialog).queryByLabelText(/usuario responsable/i)).not.toBeInTheDocument();
+    await screen.findByText('Responsable asignado');
+    expect(calls.some((call) => call.url.includes('/inventory/assignee-candidates'))).toBe(true);
     expect(calls.some((call) => call.url.includes('/admin/users'))).toBe(false);
+  });
+
+  it('permite paginar los candidatos de asignación', async () => {
+    const nextCandidate = {
+      id: '99999999-9999-4999-8999-999999999999',
+      display_name: 'A. Cárdenas',
+      email: 'a.cardenas@dedalo.local',
+    };
+    const { calls } = seedApp(
+      `/app/inventarios/${TEST_CAMPAIGN_ID}`,
+      MANAGER_PERMISSIONS,
+      detailRoutes({
+        candidates: testAssigneeCandidatePage(TEST_ASSIGNEE_CANDIDATES, { total: 51 }),
+        mutations: [
+          {
+            match: /\/inventory\/assignee-candidates\?.*offset=50/,
+            method: 'GET',
+            body: testAssigneeCandidatePage([nextCandidate], {
+              total: 51,
+              limit: 50,
+              offset: 50,
+            }),
+          },
+        ],
+      }),
+    );
+
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Asignar' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Asignar responsable' });
+    expect(await within(dialog).findByText('1–2 de 51')).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Siguientes' }));
+
+    expect(await within(dialog).findByText('51–51 de 51')).toBeInTheDocument();
+    expect(within(dialog).getByRole('option', { name: /A\. Cárdenas/ })).toBeInTheDocument();
+    expect(calls.some((call) => call.url.includes('offset=50'))).toBe(true);
   });
 });
 

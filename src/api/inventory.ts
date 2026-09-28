@@ -83,13 +83,18 @@ export interface AssignmentHistoryItem {
   revoked_at: string | null;
 }
 
-/** GET /admin/users (permiso users.read): el backend devuelve una lista plana. */
-export interface AdminUser {
+/** GET /inventory/assignee-candidates (permiso inventory.assign). */
+export interface AssigneeCandidate {
   id: string;
-  email: string;
   display_name: string;
-  is_active: boolean;
-  roles: string[];
+  email: string | null;
+}
+
+export interface AssigneeCandidatePage {
+  total: number;
+  limit: number;
+  offset: number;
+  items: AssigneeCandidate[];
 }
 
 export interface CampaignListParams {
@@ -227,6 +232,13 @@ export const inventoryApi = {
     });
   },
 
+  assigneeCandidates(params: { limit?: number; offset?: number } = {}, signal?: AbortSignal) {
+    return apiClient.get<AssigneeCandidatePage>(`${BASE}/assignee-candidates`, {
+      query: clean({ limit: params.limit, offset: params.offset }),
+      signal,
+    });
+  },
+
   assign(campaignId: string, body: AssignBody) {
     return apiClient.post<AssignResult>(`${BASE}/campaigns/${campaignId}/assign`, body);
   },
@@ -246,18 +258,3 @@ export const inventoryApi = {
     });
   },
 };
-
-/**
- * GET /admin/users — requiere users.read. MANAGER tiene inventory.assign pero
- * NO users.read: nunca debe llamarse sin ese permiso (ver contract gap
- * MANAGER_ASSIGNMENT_USER_DISCOVERY).
- */
-export function listAdminUsers(
-  params: { limit?: number; offset?: number } = {},
-  signal?: AbortSignal,
-) {
-  return apiClient.get<AdminUser[]>('/admin/users', {
-    query: clean({ limit: params.limit, offset: params.offset }),
-    signal,
-  });
-}
