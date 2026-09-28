@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { EmptyState, ErrorState } from '@/components/ui/State';
 import { STATUS_LABEL, STATUS_TONE, canReopenCampaign } from '@/features/inventarios/campaignStatus';
 import { campaignKeys } from '@/features/inventarios/campaignCache';
+import { StartCountButton } from '@/features/conteo/StartCountButton';
 import styles from './DashboardPage.module.css';
 
 const DASHBOARD_LIMIT = 50;
@@ -50,12 +51,14 @@ function isOverdue(campaign: CampaignSummary): boolean {
 function CampaignRow({
   campaign,
   meta,
+  action,
 }: {
   campaign: MyAssignment | CampaignSummary;
   meta?: React.ReactNode;
+  action?: React.ReactNode;
 }) {
   return (
-    <li>
+    <li className={styles.campaignRowWrap}>
       <Link className={styles.campaignRow} to={`/app/inventarios/${campaign.id}`}>
         <span className={styles.campaignMain}>
           <span className={styles.campaignName}>{campaign.name}</span>
@@ -77,6 +80,7 @@ function CampaignRow({
           </Badge>
         </span>
       </Link>
+      {action ? <span className={styles.campaignAction}>{action}</span> : null}
     </li>
   );
 }
@@ -98,6 +102,7 @@ function RowSkeletons({ rows = 3 }: { rows?: number }) {
 export function DashboardPage() {
   const { user, permissions } = useAuth();
   const canRead = hasPermission(permissions, PERMISSIONS.INVENTORY_READ);
+  const canCount = hasPermission(permissions, PERMISSIONS.INVENTORY_COUNT);
 
   const listParams = { limit: DASHBOARD_LIMIT, offset: 0 };
   const campaignsQuery = useApiQuery(
@@ -178,7 +183,23 @@ export function DashboardPage() {
               </p>
               <ul className={styles.campaignList}>
                 {mine.slice(0, 3).map((assignment) => (
-                  <CampaignRow key={assignment.assignment_id} campaign={assignment} />
+                  <CampaignRow
+                    key={assignment.assignment_id}
+                    campaign={assignment}
+                    action={
+                      canCount &&
+                      (assignment.status === 'IN_PROGRESS' || assignment.status === 'RECOUNT') ? (
+                        <StartCountButton
+                          campaignId={assignment.id}
+                          size="sm"
+                          variant="secondary"
+                          aria-label={`Iniciar o continuar el conteo de ${assignment.name}`}
+                        >
+                          Contar
+                        </StartCountButton>
+                      ) : undefined
+                    }
+                  />
                 ))}
               </ul>
             </>

@@ -1,17 +1,18 @@
-import { CloudOff, Loader2, Check } from 'lucide-react';
+import { CloudOff, Loader2, Check, AlertTriangle } from 'lucide-react';
 import styles from './SaveIndicator.module.css';
 
-export type SaveState = 'saved' | 'saving' | 'offline';
+export type SaveState = 'saved' | 'saving' | 'offline' | 'error';
 
 const LABELS: Record<SaveState, string> = {
   saved: 'Guardado',
   saving: 'Guardando…',
   offline: 'Sin conexión',
+  error: 'Error al guardar',
 };
 
 /**
- * Indicador de autoguardado (UX preparada; el autoguardado real llega en
- * FF001). El estado es dato de entrada, no lógica del frontend.
+ * Indicador de autoguardado. El estado lo decide el motor de la vista (cola de
+ * eventos, red, conflictos); aquí solo se comunica.
  */
 export function SaveIndicator({ state = 'saved' }: { state?: SaveState }) {
   return (
@@ -20,6 +21,8 @@ export function SaveIndicator({ state = 'saved' }: { state?: SaveState }) {
         <Check size={13} aria-hidden="true" />
       ) : state === 'saving' ? (
         <Loader2 size={13} className={styles.spin} aria-hidden="true" />
+      ) : state === 'error' ? (
+        <AlertTriangle size={13} aria-hidden="true" />
       ) : (
         <CloudOff size={13} aria-hidden="true" />
       )}

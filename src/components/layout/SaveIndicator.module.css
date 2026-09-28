@@ -29,6 +29,12 @@
   border-color: rgba(224, 145, 60, 0.28);
 }
 
+.error {
+  color: var(--error-texto, var(--alerta-texto));
+  background: var(--error-humo, var(--alerta-humo));
+  border-color: rgba(224, 90, 60, 0.4);
+}
+
 .label {
   display: inline;
 }

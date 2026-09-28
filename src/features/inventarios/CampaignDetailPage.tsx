@@ -24,6 +24,7 @@ import {
   type StartPhase,
 } from './CampaignLifecycleDialogs';
 import { AssignResponsibleDialog, UnassignResponsibleDialog } from './AssignDialogs';
+import { StartCountButton } from '../conteo/StartCountButton';
 import { CampaignStatusRail } from './CampaignStatusRail';
 import { campaignKeys, invalidateCampaignData } from './campaignCache';
 import {
@@ -108,6 +109,7 @@ export function CampaignDetailPage() {
   const canAssign = hasPermission(permissions, PERMISSIONS.INVENTORY_ASSIGN);
   const canMonitor = hasPermission(permissions, PERMISSIONS.INVENTORY_MONITOR);
   const canClose = hasPermission(permissions, PERMISSIONS.INVENTORY_CLOSE);
+  const canCount = hasPermission(permissions, PERMISSIONS.INVENTORY_COUNT);
   const canReopenPerm = hasPermission(permissions, PERMISSIONS.INVENTORY_REOPEN);
   const [assigneeOffset, setAssigneeOffset] = useState(0);
 
@@ -313,6 +315,8 @@ export function CampaignDetailPage() {
   const showAssign = canAssign && canAssignResponsible(status);
   const hasActive = Boolean(activeAssignment) || isMine;
   const showUnassign = canAssign && canUnassignResponsible(status) && hasActive;
+  const showCount =
+    canCount && isMine && (status === 'IN_PROGRESS' || status === 'RECOUNT');
 
   return (
     <PageShell>
@@ -332,9 +336,14 @@ export function CampaignDetailPage() {
             {STATUS_LABEL[status]}
           </Badge>
         }
-        actions={
-          <div className={styles.actions}>
-            {showEdit ? (
+          actions={
+            <div className={styles.actions}>
+              {showCount ? (
+                <StartCountButton campaignId={campaign.id} size="sm">
+                  Iniciar/Continuar conteo
+                </StartCountButton>
+              ) : null}
+              {showEdit ? (
               <Button variant="secondary" onClick={() => openDialog('edit')}>
                 Editar
               </Button>

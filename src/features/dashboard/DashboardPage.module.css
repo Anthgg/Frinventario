@@ -233,6 +233,23 @@
   background: rgba(255, 255, 255, 0.035);
 }
 
+.campaignRowWrap {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.campaignRowWrap .campaignRow {
+  flex: 1;
+  min-width: 0;
+}
+
+.campaignAction {
+  display: flex;
+  flex: none;
+}
+
 .campaignMain {
   display: flex;
   flex-direction: column;
@@ -352,6 +369,15 @@
     flex-direction: column;
     align-items: flex-start;
     gap: var(--sp-2);
+  }
+
+  .campaignRowWrap {
+    flex-wrap: wrap;
+  }
+
+  .campaignAction,
+  .campaignAction button {
+    width: 100%;
   }
 
   .campaignSide {
