@@ -83,13 +83,13 @@ export class QrRegionTracker {
         // Sin geometría: cooldown por valor (único caso donde aplica).
         const last = this.lastAcceptedByValue.get(detection.value);
         if (last === undefined || now - last >= this.options.valueCooldownMs) {
-          this.lastAcceptedByValue.set(detection.value, now);
+          this.rememberAcceptedValue(detection.value, now);
           accepted.push(detection);
         }
         continue;
       }
 
-      const track = this.matchTrack(detection);
+      const track = this.matchTrack(detection, matchedTrackIds);
       if (track) {
         matchedTrackIds.add(track.id);
         track.misses = 0;
@@ -121,7 +121,7 @@ export class QrRegionTracker {
     return accepted;
   }
 
-  private matchTrack(detection: QrDetection): Track | undefined {
+  private matchTrack(detection: QrDetection, matchedTrackIds: Set<number>): Track | undefined {
     const box = detection.box;
     if (!box) return undefined;
     const { x, y } = centerOf(box);
@@ -129,6 +129,7 @@ export class QrRegionTracker {
     let bestDistance = Number.POSITIVE_INFINITY;
 
     for (const track of this.tracks.values()) {
+      if (matchedTrackIds.has(track.id)) continue;
       if (track.value !== detection.value) continue;
       // Tolerancia proporcional al tamaño de la región: mueve la pieza un poco
       // y sigue siendo la misma; dos piezas juntas quedan fuera de tolerancia.
@@ -157,12 +158,23 @@ export class QrRegionTracker {
   private prune(): void {
     if (this.tracks.size <= this.options.maxTracks) return;
     const ordered = [...this.tracks.values()].sort(
-      (a, b) => a.misses - b.misses || a.id - b.id,
+      (a, b) => b.misses - a.misses || a.id - b.id,
     );
     const excess = this.tracks.size - this.options.maxTracks;
     for (let index = 0; index < excess; index += 1) {
       const target = ordered[index];
       if (target) this.tracks.delete(target.id);
+    }
+  }
+
+  private rememberAcceptedValue(value: string, now: number): void {
+    // Map insertion order gives a small FIFO cap for geometry-less detections.
+    this.lastAcceptedByValue.delete(value);
+    this.lastAcceptedByValue.set(value, now);
+    while (this.lastAcceptedByValue.size > this.options.maxTracks) {
+      const oldest = this.lastAcceptedByValue.keys().next().value as string | undefined;
+      if (oldest === undefined) break;
+      this.lastAcceptedByValue.delete(oldest);
     }
   }
 }

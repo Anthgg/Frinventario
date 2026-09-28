@@ -150,6 +150,8 @@ export interface SubmitCountRequest {
 export const MAX_BATCH_EVENTS = 100;
 
 const BASE = '/inventory';
+const ITEMS_PAGE_SIZE = 200;
+const EVENTS_PAGE_SIZE = 500;
 
 export const countingApi = {
   start(campaignId: string, signal?: AbortSignal): Promise<StartCountSessionResponse> {
@@ -164,18 +166,34 @@ export const countingApi = {
     return apiClient.get<CountSession>(`${BASE}/count-sessions/${sessionId}`, { signal });
   },
 
-  getItems(sessionId: string, signal?: AbortSignal): Promise<CountItem[]> {
-    return apiClient.get<CountItem[]>(`${BASE}/count-sessions/${sessionId}/items`, {
-      query: { limit: 200, offset: 0 },
-      signal,
-    });
+  async getItems(sessionId: string, signal?: AbortSignal): Promise<CountItem[]> {
+    const items: CountItem[] = [];
+    let offset = 0;
+    while (true) {
+      const page = await apiClient.get<CountItem[]>(`${BASE}/count-sessions/${sessionId}/items`, {
+        query: { limit: ITEMS_PAGE_SIZE, offset },
+        signal,
+      });
+      items.push(...page);
+      offset += page.length;
+      if (page.length < ITEMS_PAGE_SIZE) return items;
+    }
   },
 
-  getEvents(sessionId: string, signal?: AbortSignal): Promise<CountEventPage> {
-    return apiClient.get<CountEventPage>(`${BASE}/count-sessions/${sessionId}/events`, {
-      query: { limit: 200, offset: 0 },
-      signal,
-    });
+  async getEvents(sessionId: string, signal?: AbortSignal): Promise<CountEventPage> {
+    const items: CountEvent[] = [];
+    let offset = 0;
+    while (true) {
+      const page = await apiClient.get<CountEventPage>(`${BASE}/count-sessions/${sessionId}/events`, {
+        query: { limit: EVENTS_PAGE_SIZE, offset },
+        signal,
+      });
+      items.push(...page.items);
+      offset += page.items.length;
+      if (page.items.length < EVENTS_PAGE_SIZE) {
+        return { session_id: page.session_id, limit: items.length, offset: 0, items };
+      }
+    }
   },
 
   postEvent(sessionId: string, body: CountEventRequest): Promise<CountEvent> {

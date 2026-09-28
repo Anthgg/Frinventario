@@ -58,8 +58,9 @@ export interface UseCountSessionResult {
   queued: number;
   saveState: SaveState;
   failure: CountFailure | null;
+  sessionBlock: { message: string; code?: string } | null;
   lastScanned: string | null;
-  /** true solo si la sesión admite eventos (IN_PROGRESS). */
+  /** true solo para sesiones abiertas que FF003 sabe operar. */
   interactive: boolean;
   addOne: (item: LocalItem) => void;
   subtractOne: (item: LocalItem) => void;
@@ -70,6 +71,21 @@ export interface UseCountSessionResult {
   dismissFailure: () => void;
   refresh: () => void;
   replaceSession: (session: CountSession) => void;
+}
+
+const TERMINAL_EVENT_ERROR_CODES = new Set([
+  'SESSION_NOT_OPEN',
+  'ASSIGNMENT_NOT_ACTIVE',
+  'CAMPAIGN_EXPIRED',
+  'CAMPAIGN_CLOSED',
+  'CAMPAIGN_NOT_ACTIVE',
+]);
+
+function supportsLiveCount(session: CountSession): boolean {
+  return (
+    session.status === 'IN_PROGRESS' &&
+    (session.session_type === 'INITIAL' || session.session_type === 'REASSIGNMENT')
+  );
 }
 
 export interface UseCountSessionOptions {
@@ -90,6 +106,7 @@ export function useCountSession({
   const [events, setEvents] = useState<CountEvent[]>([]);
   const [saveState, setSaveState] = useState<SaveState>('saved');
   const [failure, setFailure] = useState<CountFailure | null>(null);
+  const [sessionBlock, setSessionBlock] = useState<{ message: string; code?: string } | null>(null);
   const [queued, setQueued] = useState(0);
   const [pending, setPending] = useState<Record<string, number>>({});
   const [lastScanned, setLastScanned] = useState<string | null>(null);
@@ -103,6 +120,7 @@ export function useCountSession({
   const eventsRef = useRef<CountEvent[]>([]);
   const mountedRef = useRef(true);
   const interactiveRef = useRef(false);
+  const sessionBlockRef = useRef<{ message: string; code?: string } | null>(null);
   const loadedRef = useRef(false);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -126,6 +144,7 @@ export function useCountSession({
     setPending(deltas);
     if (nextState) setSaveState(nextState);
     else if (failureRef.current) setSaveState(failureRef.current.network ? 'offline' : 'error');
+    else if (sessionBlockRef.current) setSaveState('error');
     else if (queueRef.current.length > 0) setSaveState('saving');
     else setSaveState('saved');
   }, []);
@@ -176,7 +195,7 @@ export function useCountSession({
         itemsRef.current = local;
         eventsRef.current = history;
         loadedRef.current = true;
-        interactiveRef.current = nextSession.status === 'IN_PROGRESS';
+        interactiveRef.current = !sessionBlockRef.current && supportsLiveCount(nextSession);
         setSession(nextSession);
         setItems(local);
         setEvents(history);
@@ -220,6 +239,23 @@ export function useCountSession({
             continue;
           }
 
+          if (apiError.code && TERMINAL_EVENT_ERROR_CODES.has(apiError.code)) {
+            const block = {
+              message: apiError.message,
+              ...(apiError.code ? { code: apiError.code } : {}),
+            };
+            sessionBlockRef.current = block;
+            interactiveRef.current = false;
+            queueRef.current = [];
+            failedRef.current = null;
+            failureRef.current = null;
+            setFailure(null);
+            setSessionBlock(block);
+            syncQueueState();
+            scheduleRefresh();
+            break;
+          }
+
           const network = apiError.code === 'NETWORK_ERROR';
           const nextFailure: CountFailure = {
             uuid: entry.uuid,
@@ -243,7 +279,11 @@ export function useCountSession({
 
   const enqueue = useCallback(
     (entry: QueueEntry) => {
-      if (!mountedRef.current || failureRef.current || !interactiveRef.current) return;
+      if (
+        !mountedRef.current ||
+        failureRef.current ||
+        !interactiveRef.current
+      ) return;
       queueRef.current = [...queueRef.current, entry];
       syncQueueState('saving');
       void drain();
@@ -357,12 +397,15 @@ export function useCountSession({
     failedRef.current = null;
     failureRef.current = null;
     setFailure(null);
-    queueRef.current = [entry, ...queueRef.current];
+    // The failed entry remains at the queue head; retry it in place so its
+    // optimistic delta is counted once and the UUID stays unchanged.
     syncQueueState('saving');
     void drain();
   }, [drain, syncQueueState]);
 
   const dismissFailure = useCallback(() => {
+    const failed = failedRef.current;
+    if (failed) queueRef.current = queueRef.current.filter((entry) => entry !== failed);
     failedRef.current = null;
     failureRef.current = null;
     setFailure(null);
@@ -371,7 +414,7 @@ export function useCountSession({
   }, [drain, syncQueueState]);
 
   const replaceSession = useCallback((next: CountSession) => {
-    interactiveRef.current = next.status === 'IN_PROGRESS';
+    interactiveRef.current = !sessionBlockRef.current && supportsLiveCount(next);
     setSession(next);
   }, []);
 
@@ -384,7 +427,7 @@ export function useCountSession({
   }, []);
 
   return {
-    loading,
+    loading: !sessionId || loading,
     loadError,
     session,
     items,
@@ -393,8 +436,9 @@ export function useCountSession({
     queued,
     saveState,
     failure,
+    sessionBlock,
     lastScanned,
-    interactive: session?.status === 'IN_PROGRESS',
+    interactive: Boolean(session && !sessionBlock && supportsLiveCount(session)),
     addOne,
     subtractOne,
     setQuantity,

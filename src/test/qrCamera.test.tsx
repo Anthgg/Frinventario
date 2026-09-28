@@ -116,6 +116,37 @@ describe('useQrScanner (loop de detección)', () => {
     expect(callbacks.every((callback) => callback === null)).toBe(true);
   });
 
+  it('reinicia el tracking al cambiar de sesión sin desmontar la ruta', async () => {
+    const region = { x: 10, y: 10, width: 80, height: 80 };
+    const { detector, detect } = detectorReturning([
+      [{ value: 'ACA60001', box: region }],
+      [{ value: 'ACA60001', box: region }],
+    ]);
+    const onAccepted = vi.fn();
+    const videoRef = videoRefWithValue();
+    const view = renderHook(
+      ({ sessionId }: { sessionId: string }) =>
+        useQrScanner({
+          videoRef,
+          enabled: true,
+          onAccepted,
+          detectorFactory: () => detector,
+          resetKey: sessionId,
+        }),
+      { initialProps: { sessionId: 'session-a' } },
+    );
+
+    await act(async () => step(1000));
+    expect(onAccepted).toHaveBeenCalledTimes(1);
+
+    view.rerender({ sessionId: 'session-b' });
+    await act(async () => step(1100));
+
+    expect(detect).toHaveBeenCalledTimes(2);
+    expect(onAccepted).toHaveBeenCalledTimes(2);
+    view.unmount();
+  });
+
   it('no arranca el loop mientras la cámara esté apagada', async () => {
     const { detector, detect } = detectorReturning([[{ value: 'REF-1', box: null }]]);
     const onAccepted = vi.fn();
@@ -161,6 +192,64 @@ describe('useQrCamera (permisos, stream y ciclo de vida)', () => {
 
     view.unmount();
     expect(stop).toHaveBeenCalledTimes(1);
+  });
+
+  it('detiene el stream si getUserMedia resuelve después de desmontar', async () => {
+    let resolveMedia!: (stream: MediaStream) => void;
+    const pendingMedia = new Promise<MediaStream>((resolve) => {
+      resolveMedia = resolve;
+    });
+    const stop = vi.fn();
+    const stream = { getTracks: () => [{ stop }] } as unknown as MediaStream;
+    Object.defineProperty(navigator, 'mediaDevices', {
+      value: { getUserMedia: vi.fn(() => pendingMedia) },
+      configurable: true,
+    });
+
+    const videoRef = createRef<HTMLVideoElement | null>();
+    videoRef.current = document.createElement('video');
+    const view = renderHook(() => useQrCamera(videoRef));
+    let startPromise!: Promise<void>;
+    act(() => {
+      startPromise = view.result.current.start();
+    });
+    view.unmount();
+
+    await act(async () => {
+      resolveMedia(stream);
+      await startPromise;
+    });
+
+    expect(stop).toHaveBeenCalledTimes(1);
+    expect(videoRef.current?.srcObject).toBeNull();
+  });
+
+  it('si se detiene mientras espera permiso, libera el stream al recibirlo', async () => {
+    let resolveMedia!: (stream: MediaStream) => void;
+    const pendingMedia = new Promise<MediaStream>((resolve) => {
+      resolveMedia = resolve;
+    });
+    const stop = vi.fn();
+    const stream = { getTracks: () => [{ stop }] } as unknown as MediaStream;
+    Object.defineProperty(navigator, 'mediaDevices', {
+      value: { getUserMedia: vi.fn(() => pendingMedia) },
+      configurable: true,
+    });
+    const view = renderHook(() => useQrCamera(createRef<HTMLVideoElement | null>()));
+    let startPromise!: Promise<void>;
+
+    act(() => {
+      startPromise = view.result.current.start();
+      view.result.current.stop();
+    });
+    await act(async () => {
+      resolveMedia(stream);
+      await startPromise;
+    });
+
+    expect(stop).toHaveBeenCalledTimes(1);
+    expect(view.result.current.status).toBe('idle');
+    view.unmount();
   });
 
   it('reporta permiso denegado sin romper la vista', async () => {

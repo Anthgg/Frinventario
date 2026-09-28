@@ -90,16 +90,15 @@ function MissingSection({
   return (
     <div className={styles.finishMissing}>
       <p className={styles.finishMissingTitle}>
-        <ListX size={16} aria-hidden="true" /> Faltan {missing.length} productos por registrar
+        <ListX size={16} aria-hidden="true" /> Productos sin registrar
       </p>
       <ul className={styles.finishMissingList}>
-        {missing.slice(0, 8).map((item) => (
+        {missing.map((item) => (
           <li key={item.product_id}>
             <span className="mono">{item.internal_reference}</span>
             <span>{item.name}</span>
           </li>
         ))}
-        {missing.length > 8 ? <li aria-hidden="true">+{missing.length - 8} más</li> : null}
       </ul>
       <label className={styles.finishConfirm}>
         <input
@@ -236,7 +235,7 @@ export function FinishCountDialog({
   onSubmitted,
   onSessionConflict,
 }: FinishCountDialogProps) {
-  const { check, checking, checkError, retryCheck } = useFinishCheck(open, session.id);
+  const { check, checking, checkError, retryCheck } = useFinishCheck(open && canSubmit, session.id);
   const [confirmed, setConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);

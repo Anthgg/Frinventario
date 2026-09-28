@@ -55,6 +55,42 @@ describe('QrRegionTracker (dedupe por región visual)', () => {
     ).toHaveLength(0);
   });
 
+  it('no reutiliza una track visible para una segunda región cercana del mismo frame', () => {
+    const tracker = new QrRegionTracker({ matchTolerancePx: 16 });
+    expect(tracker.acceptFrame([detect('ACA60001', box(40, 20, 32))], 0)).toHaveLength(1);
+
+    const accepted = tracker.acceptFrame(
+      [detect('ACA60001', box(40, 20, 32)), detect('ACA60001', box(72, 20, 32))],
+      100,
+    );
+
+    expect(accepted).toHaveLength(1);
+    expect(accepted[0]?.box).toEqual(box(72, 20, 32));
+  });
+
+  it('elimina primero el track inactivo al alcanzar maxTracks', () => {
+    const tracker = new QrRegionTracker({ maxTracks: 2 });
+    tracker.acceptFrame([detect('A', box(0, 0)), detect('B', box(300, 0))], 0);
+    tracker.acceptFrame([detect('B', box(300, 0))], 100);
+
+    expect(tracker.acceptFrame([detect('B', box(300, 0)), detect('C', box(600, 0))], 200)).toHaveLength(1);
+    expect(tracker.acceptFrame([detect('B', box(300, 0))], 300)).toHaveLength(0);
+  });
+
+  it('limita el cooldown por valor cuando las detecciones no incluyen geometría', () => {
+    const tracker = new QrRegionTracker({ maxTracks: 2, valueCooldownMs: 1500 });
+    expect(
+      tracker.acceptFrame(
+        [detect('QR-A', null), detect('QR-B', null), detect('QR-C', null)],
+        0,
+      ),
+    ).toHaveLength(3);
+
+    // QR-A salió del FIFO limitado; las dos entradas más recientes siguen en cooldown.
+    expect(tracker.acceptFrame([detect('QR-A', null)], 100)).toHaveLength(1);
+    expect(tracker.acceptFrame([detect('QR-C', null)], 100)).toHaveLength(0);
+  });
+
   it('procesa varias regiones distintas en el mismo frame (multi-QR)', () => {
     const tracker = new QrRegionTracker();
 

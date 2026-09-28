@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { countingApi, type CountEvent, type CountSession } from '@/api/counting';
+import { ApiError } from '@/api/errors';
 import { toLocalItems, type LocalItem } from '@/features/conteo/countModel';
 import { useCountSession } from '@/features/conteo/useCountSession';
 
@@ -131,6 +132,53 @@ describe('cola de eventos de conteo', () => {
     expect(countingApi.postEvent).not.toHaveBeenCalled();
   });
 
+  it('si se pierde la respuesta de un lote, reintenta con los mismos UUIDs por evento', async () => {
+    type BatchResponse = Awaited<ReturnType<typeof countingApi.postBatch>>;
+    let resolveRetry!: (response: BatchResponse) => void;
+    const retryPending = new Promise<BatchResponse>((resolve) => {
+      resolveRetry = resolve;
+    });
+    vi.mocked(countingApi.postBatch)
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockReturnValueOnce(retryPending);
+
+    const view = renderCount();
+    await waitFor(() => expect(view.result.current.loading).toBe(false));
+    act(() => view.result.current.scanCodes(['REF-1', 'REF-2']));
+
+    await waitFor(() => expect(view.result.current.failure).not.toBeNull());
+    const firstRequest = vi.mocked(countingApi.postBatch).mock.calls[0]![1];
+    const originalUuids = firstRequest.events.map((event) => event.client_event_uuid);
+    expect(originalUuids).toHaveLength(2);
+    expect(new Set(originalUuids).size).toBe(2);
+    expect(view.result.current.queued).toBe(1);
+
+    act(() => view.result.current.retryFailure());
+    await waitFor(() => expect(countingApi.postBatch).toHaveBeenCalledTimes(2));
+
+    const retriedRequest = vi.mocked(countingApi.postBatch).mock.calls[1]![1];
+    expect(retriedRequest.events).toEqual(firstRequest.events);
+    expect(retriedRequest.events.map((event) => event.client_event_uuid)).toEqual(originalUuids);
+    expect(view.result.current.queued).toBe(1);
+
+    await act(async () => {
+      resolveRetry({
+        processed: 0,
+        items: retriedRequest.events.map((event, index) =>
+          makeEvent({
+            event_id: `evt-batch-replay-${index + 1}`,
+            client_event_uuid: event.client_event_uuid,
+            server_sequence: index + 1,
+            event_type: event.event_type,
+            scanned_code: event.scanned_code ?? null,
+            already_processed: true,
+          }),
+        ),
+      });
+    });
+    await waitFor(() => expect(view.result.current.queued).toBe(0));
+  });
+
   it('las ráfagas de "+" salen en serie y conservan el orden', async () => {
     const pending: Array<() => void> = [];
     vi.mocked(countingApi.postEvent).mockImplementation(
@@ -202,6 +250,92 @@ describe('cola de eventos de conteo', () => {
     const secondUuid = vi.mocked(countingApi.postEvent).mock.calls[1]![1].client_event_uuid;
     expect(secondUuid).toBe(firstUuid);
     await waitFor(() => expect(view.result.current.saveState).toBe('saved'));
+  });
+
+  it('mantiene una sola entrada optimista mientras reintenta el fallo', async () => {
+    let resolveRetry!: (event: CountEvent) => void;
+    const retryPending = new Promise<CountEvent>((resolve) => {
+      resolveRetry = resolve;
+    });
+    vi.mocked(countingApi.postEvent)
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockReturnValueOnce(retryPending);
+
+    const view = renderCount();
+    await waitFor(() => expect(view.result.current.loading).toBe(false));
+    act(() => view.result.current.addOne(productItem()));
+    await waitFor(() => expect(view.result.current.failure).not.toBeNull());
+    const itemKey = productItem().key;
+    expect(view.result.current.queued).toBe(1);
+    expect(view.result.current.pending[itemKey]).toBe(1);
+
+    act(() => view.result.current.retryFailure());
+    await waitFor(() => expect(countingApi.postEvent).toHaveBeenCalledTimes(2));
+    expect(view.result.current.queued).toBe(1);
+    expect(view.result.current.pending[itemKey]).toBe(1);
+
+    await act(async () => resolveRetry(makeEvent()));
+    await waitFor(() => expect(view.result.current.queued).toBe(0));
+  });
+
+  it('descartar quita solo el fallo y no vuelve a enviarlo', async () => {
+    let rejectFirst!: (reason?: unknown) => void;
+    const firstPending = new Promise<CountEvent>((_resolve, reject) => {
+      rejectFirst = reject;
+    });
+    vi.mocked(countingApi.postEvent)
+      .mockReturnValueOnce(firstPending)
+      .mockResolvedValueOnce(makeEvent({ event_id: 'evt-second', server_sequence: 4 }));
+
+    const view = renderCount();
+    await waitFor(() => expect(view.result.current.loading).toBe(false));
+    act(() => {
+      view.result.current.addOne(productItem());
+      view.result.current.addOne(productItem());
+    });
+    await waitFor(() => expect(countingApi.postEvent).toHaveBeenCalledTimes(1));
+    const failedUuid = vi.mocked(countingApi.postEvent).mock.calls[0]![1].client_event_uuid;
+    await act(async () => rejectFirst(new TypeError('Failed to fetch')));
+    await waitFor(() => expect(view.result.current.failure).not.toBeNull());
+
+    act(() => view.result.current.dismissFailure());
+    await waitFor(() => expect(view.result.current.queued).toBe(0));
+    expect(countingApi.postEvent).toHaveBeenCalledTimes(2);
+    const remainingUuid = vi.mocked(countingApi.postEvent).mock.calls[1]![1].client_event_uuid;
+    expect(remainingUuid).not.toBe(failedUuid);
+    expect(view.result.current.events.map((event) => event.event_id)).toEqual(['evt-second']);
+  });
+
+  it.each(['RECOUNT', 'SUPERVISOR_CHECK'] as const)(
+    'bloquea tipos de sesión que FF003 no implementa: %s',
+    async (sessionType) => {
+      vi.mocked(countingApi.getSession).mockResolvedValue(
+        sessionPayload({ session_type: sessionType }),
+      );
+      const view = renderCount();
+      await waitFor(() => expect(view.result.current.loading).toBe(false));
+
+      expect(view.result.current.interactive).toBe(false);
+      act(() => view.result.current.addOne(productItem()));
+      expect(countingApi.postEvent).not.toHaveBeenCalled();
+    },
+  );
+
+  it('bloquea controles y vuelve a cargar si el backend cierra la sesión', async () => {
+    vi.mocked(countingApi.postEvent).mockRejectedValueOnce(
+      new ApiError(409, 'SESSION_NOT_OPEN', 'La sesión no admite más eventos.'),
+    );
+    const view = renderCount();
+    await waitFor(() => expect(view.result.current.loading).toBe(false));
+
+    act(() => view.result.current.addOne(productItem()));
+    await waitFor(() => expect(view.result.current.sessionBlock?.code).toBe('SESSION_NOT_OPEN'));
+    expect(view.result.current.interactive).toBe(false);
+    expect(view.result.current.queued).toBe(0);
+
+    act(() => view.result.current.addOne(productItem()));
+    expect(countingApi.postEvent).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(countingApi.getSession).toHaveBeenCalledTimes(2));
   });
 
   it('concilia un QR desconocido sin marcar error (lo clasifica el backend)', async () => {

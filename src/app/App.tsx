@@ -9,7 +9,7 @@ import { CampaignDetailPage } from '@/features/inventarios/CampaignDetailPage';
 import { InventariosPage } from '@/features/inventarios/InventariosPage';
 import { LoginPage } from '@/features/auth/LoginPage';
 import { DashboardPage } from '@/features/dashboard/DashboardPage';
-import { CountSessionPage } from '@/features/conteo/CountSessionPage';
+import { CountSessionRoute } from '@/features/conteo/CountSessionPage';
 import {
   ConfiguracionPage,
   DocumentsPage,
@@ -61,7 +61,7 @@ export function AppRoutes() {
           path="conteo/:sessionId"
           element={
             <RequirePermission permission="inventory.count">
-              <CountSessionPage />
+              <CountSessionRoute />
             </RequirePermission>
           }
         />

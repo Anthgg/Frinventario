@@ -18,6 +18,8 @@ export interface QrScannerOptions {
   enabled: boolean;
   onAccepted: (detections: QrDetection[]) => void;
   fps?: number;
+  /** Reinicia tracks cuando cambia la sesión aunque la ruta siga montada. */
+  resetKey?: string | number | null;
   /** Inyección para tests (sin cámara física). */
   detectorFactory?: () => QrDetector;
 }
@@ -35,6 +37,7 @@ export function useQrScanner({
   enabled,
   onAccepted,
   fps = DEFAULT_FPS,
+  resetKey,
   detectorFactory = createQrDetector,
 }: QrScannerOptions): QrScannerState {
   const [error, setError] = useState<string | null>(null);
@@ -103,7 +106,7 @@ export function useQrScanner({
       tracker.reset();
       kindRef.current = null;
     };
-  }, [enabled, fps, videoRef, detectorFactory]);
+  }, [enabled, fps, videoRef, detectorFactory, resetKey]);
 
   const detectorKind = useCallback(() => kindRef.current, []);
 

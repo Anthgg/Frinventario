@@ -1,10 +1,12 @@
-import { screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
+import { MemoryRouter, useNavigate } from 'react-router-dom';
+import { App } from '@/app/App';
 import { renderApp, seedRefreshToken, stubAuthBackend, type StubRoute, type StubRouteContext } from './helpers';
 
 const SESSION_ID = 'ses-ff003';
-const SESSION_URL = `/inventory/count-sessions/${SESSION_ID}`;
+const NEXT_SESSION_ID = 'ses-ff003-next';
 
 function sessionPayload(overrides: Record<string, unknown> = {}) {
   return {
@@ -70,45 +72,52 @@ interface RouteOverrides {
 }
 
 /** Rutas del contrato real de conteo, en el orden en que las resuelve el stub. */
-function countRoutes(overrides: RouteOverrides = {}): StubRoute[] {
+function countRoutes(overrides: RouteOverrides = {}, sessionId = SESSION_ID): StubRoute[] {
+  const sessionUrl = `/inventory/count-sessions/${sessionId}`;
+  const sessionRoute = new RegExp(`${sessionUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:\\?|$)`);
   return [
     {
-      match: `${SESSION_URL}/items`,
+      match: `${sessionUrl}/items`,
       method: 'GET',
       body: [productItem()],
       ...overrides.items,
     },
     {
-      match: `${SESSION_URL}/events`,
+      match: `${sessionUrl}/events`,
       method: 'GET',
-      body: { session_id: SESSION_ID, limit: 200, offset: 0, items: [] },
+      body: { session_id: sessionId, limit: 200, offset: 0, items: [] },
       ...overrides.events,
     },
     {
-      match: `${SESSION_URL}/finish-check`,
+      match: `${sessionUrl}/finish-check`,
       method: 'GET',
       body: { has_missing: false, missing_products: [] },
       ...overrides.finishCheck,
     },
     {
-      match: `${SESSION_URL}/submit`,
+      match: `${sessionUrl}/submit`,
       method: 'POST',
-      body: sessionPayload({ status: 'SUBMITTED', submitted_at: '2026-09-27T11:00:00Z' }),
+      body: sessionPayload({ id: sessionId, status: 'SUBMITTED', submitted_at: '2026-09-27T11:00:00Z' }),
       ...overrides.submit,
     },
     {
-      match: `${SESSION_URL}/events/batch`,
+      match: `${sessionUrl}/events/batch`,
       method: 'POST',
       body: { processed: 1, items: [eventPayload()] },
     },
     {
-      match: `${SESSION_URL}/events`,
+      match: `${sessionUrl}/events`,
       method: 'POST',
       body: eventPayload(),
       ...overrides.postEvent,
     },
-    { match: SESSION_URL, method: 'GET', body: sessionPayload(), ...overrides.session },
+    { match: sessionRoute, method: 'GET', body: sessionPayload({ id: sessionId }), ...overrides.session },
   ];
+}
+
+function SessionRouteSwitchButton({ sessionId }: { sessionId: string }) {
+  const navigate = useNavigate();
+  return <button onClick={() => navigate(`/app/conteo/${sessionId}`)}>Cambiar sesión</button>;
 }
 
 function start(path: string, overrides: RouteOverrides = {}) {
@@ -216,14 +225,67 @@ describe('sesión de conteo real', () => {
     expect(screen.queryByText(/No se pudo guardar/i)).not.toBeInTheDocument();
   });
 
+  it('mantiene en solo lectura los tipos de sesión que FF003 todavía no soporta', async () => {
+    start(COUNT_PATH, { session: { body: sessionPayload({ session_type: 'RECOUNT' }) } });
+
+    expect(await screen.findByText(/Este tipo de sesión aún no está disponible/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sumar una unidad' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Finalizar sesión/i })).toBeDisabled();
+  });
+
+  it('descarta los datos de la sesión anterior cuando cambia el identificador de ruta', async () => {
+    const routes = [
+      ...countRoutes(),
+      ...countRoutes(
+        { items: { body: [productItem({ product_id: 'prd-2', internal_reference: 'REF-2', name: 'Producto dos' })] } },
+        NEXT_SESSION_ID,
+      ),
+    ];
+    seedRefreshToken();
+    const stub = stubAuthBackend({ routes });
+    render(
+      <MemoryRouter initialEntries={[COUNT_PATH]}>
+        <SessionRouteSwitchButton sessionId={NEXT_SESSION_ID} />
+        <App />
+      </MemoryRouter>,
+    );
+    const user = userEvent.setup();
+
+    expect((await screen.findAllByText('Producto uno')).length).toBeGreaterThan(0);
+    await user.click(screen.getByRole('button', { name: 'Cambiar sesión' }));
+
+    await waitFor(() => {
+      expect(stub.calls.some((call) => call.url.includes(`${NEXT_SESSION_ID}/items`))).toBe(true);
+    });
+    expect((await screen.findAllByText('Producto dos')).length).toBeGreaterThan(0);
+    expect(screen.queryByText('Producto uno')).not.toBeInTheDocument();
+  });
+
+  it('bloquea controles manuales mientras el finish-check está abierto', async () => {
+    start(COUNT_PATH);
+    const user = userEvent.setup();
+    expect((await screen.findAllByText('Producto uno')).length).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole('button', { name: /Finalizar sesión/i }));
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    for (const button of screen.getAllByRole('button', { name: 'Sumar una unidad', hidden: true })) {
+      expect(button).toBeDisabled();
+    }
+    for (const button of screen.getAllByRole('button', { name: 'Restar una unidad', hidden: true })) {
+      expect(button).toBeDisabled();
+    }
+  });
+
   it('finaliza con finish-check y envía expected_version + confirm_missing', async () => {
     const stub = start(COUNT_PATH, {
       finishCheck: {
         body: {
           has_missing: true,
-          missing_products: [
-            { product_id: 'prd-2', internal_reference: 'REF-2', name: 'Producto dos' },
-          ],
+          missing_products: Array.from({ length: 12 }, (_, index) => ({
+            product_id: `prd-${index + 2}`,
+            internal_reference: `REF-${index + 2}`,
+            name: `Producto faltante ${index + 2}`,
+          })),
         },
       },
     });
@@ -232,7 +294,12 @@ describe('sesión de conteo real', () => {
     expect((await screen.findAllByText('Producto uno')).length).toBeGreaterThan(0);
     await user.click(screen.getByRole('button', { name: /Finalizar sesión/i }));
 
-    expect((await screen.findAllByText(/Faltan 1 productos/i)).length).toBeGreaterThan(0);
+    expect(await screen.findByText('Productos sin registrar')).toBeInTheDocument();
+    expect(screen.getByText('REF-2')).toBeInTheDocument();
+    expect(screen.getByText('REF-13')).toBeInTheDocument();
+    expect(screen.getByText('Producto faltante 13')).toBeInTheDocument();
+    expect(screen.queryByText(/\+\d+ más/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Faltan \d+ productos/)).not.toBeInTheDocument();
 
     // Sin confirmación no se envía: el backend lo rechazaría igual.
     await user.click(screen.getByRole('button', { name: /Confirmar y enviar/i }));

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Flag, PackageOpen, ScanBarcode } from 'lucide-react';
 import { SaveIndicator } from '@/components/layout/SaveIndicator';
@@ -99,7 +99,7 @@ function SessionHeader({
 }) {
   return (
     <PageHeader
-      title={readOnly ? 'Conteo enviado' : 'Conteo'}
+      title={readOnly ? 'Sesión de conteo' : 'Conteo'}
       description={
         readOnly
           ? 'Sesión cerrada: puedes consultar lo registrado, pero ya no acepta movimientos.'
@@ -289,6 +289,11 @@ function HistorySection({
  * finalizar. Sin datos simulados: todo lo que se ve viene de
  * GET /count-sessions/{id} (+ items + events) y de las respuestas del backend.
  */
+export function CountSessionRoute() {
+  const { sessionId } = useParams();
+  return <CountSessionPage key={sessionId ?? 'missing-session'} />;
+}
+
 export function CountSessionPage() {
   const { sessionId } = useParams();
   const { push } = useToast();
@@ -297,9 +302,27 @@ export function CountSessionPage() {
   const [finishOpen, setFinishOpen] = useState(false);
 
   const count = useCountSession({ sessionId });
-  const { loading, loadError, session, items, events, pending, queued, saveState, failure, lastScanned, interactive } = count;
+  const {
+    loading,
+    loadError,
+    session,
+    items,
+    events,
+    pending,
+    queued,
+    saveState,
+    failure,
+    sessionBlock,
+    lastScanned,
+    interactive,
+  } = count;
 
   const camera = useQrCamera(videoRef);
+  const stopCamera = camera.stop;
+
+  useEffect(() => {
+    if (!interactive) stopCamera();
+  }, [interactive, stopCamera]);
 
   const handleAccepted = useCallback(
     (detections: { value: string }[]) => {
@@ -317,12 +340,13 @@ export function CountSessionPage() {
   const scanner = useQrScanner({
     videoRef,
     enabled: camera.live && interactive && !finishOpen,
+    resetKey: sessionId,
     onAccepted: handleAccepted,
   });
 
   const focusItem = useFocusItem(items, focusKey, lastScanned);
 
-  const canSubmit = queued === 0 && failure === null;
+  const canSubmit = queued === 0 && failure === null && sessionBlock === null;
 
   const handleSubmitted = useCallback(
     (submitted: SubmitCountSessionResponse) => {
@@ -343,7 +367,9 @@ export function CountSessionPage() {
     return <SessionStateShell mode={mode} error={loadError} onRetry={count.refresh} />;
   }
 
-  const readOnly = session.status !== 'IN_PROGRESS';
+  const supportedSessionType =
+    session.session_type === 'INITIAL' || session.session_type === 'REASSIGNMENT';
+  const readOnly = session.status !== 'IN_PROGRESS' || !interactive;
 
   return (
     <PageShell>
@@ -362,7 +388,22 @@ export function CountSessionPage() {
         />
       ) : null}
 
-      {readOnly ? <SessionNotice status={session.status} submittedAt={session.submitted_at} /> : null}
+      {sessionBlock ? (
+        <Alert tone="danger" title="Sesión detenida">
+          {sessionBlock.message} Los controles se bloquearon y se volvió a consultar la sesión.
+        </Alert>
+      ) : null}
+
+      {!supportedSessionType ? (
+        <Alert tone="warning" title="Este tipo de sesión aún no está disponible">
+          La sesión {session.session_type} está protegida. FF003 solo permite conteos INITIAL y
+          REASSIGNMENT.
+        </Alert>
+      ) : null}
+
+      {session.status !== 'IN_PROGRESS' ? (
+        <SessionNotice status={session.status} submittedAt={session.submitted_at} />
+      ) : null}
 
       <section className={styles.topZone}>
         <CameraPanel
@@ -380,7 +421,7 @@ export function CountSessionPage() {
         <FocusArea
           item={focusItem}
           pendingDelta={pendingFor(focusItem, pending)}
-          disabled={readOnly}
+          disabled={readOnly || finishOpen}
           onAdd={count.addOne}
           onSubtract={count.subtractOne}
           onSet={count.setQuantity}
@@ -391,7 +432,7 @@ export function CountSessionPage() {
         items={items}
         pending={pending}
         focusKey={focusItem?.key ?? null}
-        disabled={readOnly}
+        disabled={readOnly || finishOpen}
         onFocus={setFocusKey}
         onAdd={count.addOne}
         onSubtract={count.subtractOne}
@@ -400,7 +441,7 @@ export function CountSessionPage() {
       <HistorySection
         events={events}
         items={items}
-        disabled={readOnly}
+        disabled={readOnly || finishOpen}
         onUndo={(event) => count.undo(event)}
       />
 
@@ -410,7 +451,7 @@ export function CountSessionPage() {
           size="lg"
           block
           onClick={() => setFinishOpen(true)}
-          disabled={readOnly}
+          disabled={readOnly || !canSubmit}
         >
           <Flag size={17} aria-hidden="true" /> Finalizar sesión
         </Button>
