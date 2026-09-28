@@ -8,6 +8,14 @@ import {
   stubAuthBackend,
   TEST_ACCESS_TOKEN,
 } from './helpers';
+import {
+  inventoryRoutes,
+  TEST_HISTORY,
+  TEST_LOCATION,
+  TEST_SOURCES,
+  testCampaignDetail,
+  testCampaignPage,
+} from './inventoryFixtures';
 
 describe('routing con sesión real', () => {
   it('redirige /app sin sesión hacia /login', async () => {
@@ -52,7 +60,7 @@ describe('login real', () => {
 
   it('envía credenciales, confirma identidad con /auth/me y entra al dashboard', async () => {
     seedRefreshToken(null);
-    const { calls, fetchMock } = stubAuthBackend();
+    const { calls } = stubAuthBackend();
     const user = userEvent.setup();
     renderApp('/login');
 
@@ -72,8 +80,9 @@ describe('login real', () => {
     const meCall = calls.find((call) => call.url.endsWith('/auth/me'));
     expect(meCall?.headers.Authorization).toBe(`Bearer ${TEST_ACCESS_TOKEN}`);
 
-    // Ninguna request duplicada inesperada.
-    expect(fetchMock.mock.calls.length).toBe(2);
+    // Ninguna petición de autenticación duplicada inesperada.
+    const authCalls = calls.filter((call) => call.url.includes('/auth/'));
+    expect(authCalls.length).toBe(2);
 
     // El access token jamás se persiste; solo el refresh token.
     expect(window.sessionStorage.getItem(REFRESH_TOKEN_KEY)).toBeTruthy();
@@ -164,9 +173,11 @@ describe('logout real', () => {
     await screen.findByRole('heading', { name: 'Dashboard' });
     await user.click(screen.getAllByRole('button', { name: 'Cerrar sesión' })[0]!);
 
-    const alert = await screen.findByRole('alert');
-    expect(alert).toHaveTextContent(/no se pudo cerrar la sesión en el servidor/i);
-    expect(within(alert).getByRole('button', { name: /reintentar/i })).toBeInTheDocument();
+    const alert = (await screen.findAllByRole('alert')).find((node) =>
+      /no se pudo cerrar la sesión en el servidor/i.test(node.textContent ?? ''),
+    );
+    expect(alert).toBeDefined();
+    expect(within(alert!).getByRole('button', { name: /reintentar/i })).toBeInTheDocument();
     // La sesión local sigue viva: no se muestra un login falso.
     expect(screen.queryByRole('heading', { name: 'Iniciar sesión' })).not.toBeInTheDocument();
     expect(window.sessionStorage.getItem(REFRESH_TOKEN_KEY)).toBeTruthy();
@@ -175,7 +186,7 @@ describe('logout real', () => {
 
 const rutas: Array<[string, string]> = [
   ['/app/inventarios', 'Inventarios'],
-  ['/app/inventarios/camp-001', 'Almacén central — línea A'],
+  ['/app/inventarios/camp-001', 'Inventario almacén central'],
   ['/app/conteo/ses-001', 'Conteo'],
   ['/app/conteo/mock', 'Conteo'],
   ['/app/reconteos', 'Reconteos'],
@@ -186,7 +197,16 @@ const rutas: Array<[string, string]> = [
 
 describe('módulos con sesión', () => {
   it.each(rutas)('renderiza %s con sesión activa', async (path, heading) => {
-    stubAuthBackend();
+    stubAuthBackend({
+      routes: inventoryRoutes({
+        list: testCampaignPage([testCampaignDetail({ id: 'camp-001' })]),
+        detail: testCampaignDetail({ id: 'camp-001' }),
+        locations: [TEST_LOCATION],
+        myAssignments: [],
+        history: TEST_HISTORY,
+        sources: TEST_SOURCES,
+      }),
+    });
     seedRefreshToken();
     renderApp(path);
 

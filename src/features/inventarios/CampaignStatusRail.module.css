@@ -1,0 +1,130 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  width: 100%;
+  min-width: 0;
+}
+
+.caption {
+  margin: 0;
+  font-size: var(--fs-caption);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--humo);
+}
+
+.rail {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.step:last-child {
+  flex: 0 1 auto;
+}
+
+.dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--r-full);
+  border: 1.5px solid var(--ceniza);
+  background: transparent;
+}
+
+.step[data-mark='done'] .dot {
+  border-color: var(--hilo-apagado);
+  background: var(--hilo-apagado);
+}
+
+.step[data-mark='current'] .dot {
+  border-color: var(--hilo);
+  background: var(--hilo);
+  box-shadow: 0 0 0 4px var(--hilo-bruma);
+}
+
+.offRamp[data-mark='off'] .dot {
+  border-color: var(--fisura);
+  background: var(--fisura);
+  box-shadow: 0 0 0 4px var(--fisura-humo);
+}
+
+.label {
+  font-size: var(--fs-caption);
+  letter-spacing: 0.04em;
+  color: var(--ceniza);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.step[data-mark='done'] .label {
+  color: var(--humo);
+}
+
+.step[data-mark='current'] .label {
+  color: var(--hilo-vivo);
+  font-weight: 600;
+}
+
+.thread {
+  flex: 1 1 auto;
+  min-width: 12px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--filo);
+}
+
+.step[data-thread='done'] .thread {
+  background: linear-gradient(90deg, var(--hilo-apagado), var(--hilo));
+}
+
+.offRamp {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+  font-size: var(--fs-meta);
+  color: var(--fisura-texto);
+}
+
+/* Móvil: el hilo se vuelve vertical y las etiquetas se apilan bajo la línea. */
+@media (max-width: 767px) {
+  .rail {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--sp-3);
+    margin-left: 6px;
+    padding-left: 0;
+    border-left: 2px solid var(--filo);
+  }
+
+  .step {
+    flex: none;
+    width: auto;
+  }
+
+  .thread {
+    display: none;
+  }
+
+  /* El punto se alinea con la línea vertical del hilo. */
+  .rail .dot {
+    position: relative;
+    left: -6px;
+  }
+}

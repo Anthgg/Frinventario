@@ -238,9 +238,6 @@ export function AppLayout() {
             </nav>
           </div>
           <div className={styles.topbarActions}>
-            <Badge tone="hilo" className={styles.mockBadge}>
-              UI_MOCK
-            </Badge>
             <ConnectionIndicator />
             <SaveIndicator state="saved" />
             <span className={styles.topbarUser}>

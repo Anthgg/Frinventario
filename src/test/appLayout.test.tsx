@@ -19,7 +19,8 @@ describe('AppLayout', () => {
       await screen.findByRole('heading', { name: 'Dashboard', level: 1 }),
     ).toBeInTheDocument();
     expect(screen.getByRole('main')).toBeInTheDocument();
-    expect(screen.getAllByText('UI_MOCK').length).toBeGreaterThan(0);
+    // FF002: la barra global de UI_MOCK ya no existe; el dashboard consume el backend.
+    expect(screen.queryByText('UI_MOCK')).not.toBeInTheDocument();
   });
 
   it('identidad real en la cabecera: display_name y rol, sin IDs internos', async () => {

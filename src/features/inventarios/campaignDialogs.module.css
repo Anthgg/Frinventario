@@ -1,0 +1,125 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  min-width: 0;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.span2 {
+  grid-column: 1 / -1;
+}
+
+.label {
+  font-size: var(--fs-meta);
+  font-weight: 500;
+  color: var(--niebla);
+}
+
+.select {
+  width: 100%;
+  height: var(--ctrl-h);
+  padding: 0 12px;
+  background: var(--noche-700);
+  border: 1px solid var(--filo);
+  border-radius: var(--r-ctrl);
+  color: var(--tiza);
+  font-family: var(--font-ui);
+  font-size: var(--fs-body);
+  cursor: pointer;
+}
+
+.select:hover:not(:disabled) {
+  border-color: var(--filo-fuerte);
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--filo-foco);
+  box-shadow: 0 0 0 3px rgba(233, 180, 76, 0.16);
+}
+
+.select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.hint {
+  font-size: var(--fs-caption);
+  line-height: 1.45;
+  color: var(--humo);
+}
+
+.error {
+  font-size: var(--fs-caption);
+  line-height: 1.45;
+  color: var(--fisura-texto);
+}
+
+.note {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  background: var(--noche-800);
+  border: 1px solid var(--filo);
+  border-radius: var(--r-md);
+}
+
+.noteText {
+  margin: 0;
+  font-size: var(--fs-meta);
+  line-height: var(--lh-body);
+  color: var(--niebla);
+}
+
+.noteList {
+  margin: 0;
+  padding-left: 18px;
+  font-size: var(--fs-meta);
+  line-height: var(--lh-body);
+  color: var(--humo);
+}
+
+.confirmBox {
+  display: flex;
+  gap: var(--sp-3);
+  align-items: flex-start;
+  padding: var(--sp-3);
+  background: var(--alerta-humo);
+  border: 1px solid rgba(224, 145, 60, 0.4);
+  border-radius: var(--r-md);
+}
+
+.confirmBox input {
+  margin-top: 3px;
+  accent-color: var(--hilo);
+}
+
+.confirmLabel {
+  font-size: var(--fs-meta);
+  line-height: var(--lh-body);
+  color: var(--tiza);
+}
+
+.danger {
+  color: var(--fisura-texto);
+}
+
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

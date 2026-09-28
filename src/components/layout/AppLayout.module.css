@@ -295,10 +295,6 @@
   display: none;
 }
 
-.mockBadge {
-  flex: none;
-}
-
 .connBadge {
   flex: none;
 }
@@ -462,7 +458,6 @@
 
   .crumbs,
   .topbarUser,
-  .mockBadge,
   .connBadge {
     display: none;
   }

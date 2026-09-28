@@ -3,6 +3,7 @@ import { cleanup } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
 import { resetConnection } from '@/api/connection';
 import { setAccessToken, setApiAuthHandler } from '@/api/client';
+import { resetQueryCache } from '@/api/query';
 import { resetRefreshController } from '@/auth/refreshController';
 
 afterEach(() => {
@@ -12,6 +13,7 @@ afterEach(() => {
   setApiAuthHandler(null);
   setAccessToken(null);
   resetConnection();
+  resetQueryCache();
   resetRefreshController();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();

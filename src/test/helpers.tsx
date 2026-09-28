@@ -62,6 +62,25 @@ export interface AuthStubOptions {
   refreshFailAfter?: number;
   /** Status para endpoints no registrados (por defecto 404). */
   unknownStatus?: number;
+  /** Rutas adicionales (inventario, etc.) resueltas ANTES del 404. */
+  routes?: StubRoute[];
+}
+
+/** Contexto de una ruta personalizada (attempt = coincidencias previas). */
+export interface StubRouteContext {
+  url: string;
+  method: string;
+  body?: unknown;
+  attempt: number;
+}
+
+/** Ruta personalizada del contrato real que debe responder el stub. */
+export interface StubRoute {
+  /** Subcadena de la URL o expresión regular sobre la URL completa. */
+  match: string | RegExp;
+  method?: string;
+  status?: number | ((context: StubRouteContext) => number);
+  body: unknown | ((context: StubRouteContext) => unknown);
 }
 
 export interface RecordedCall {
@@ -94,9 +113,11 @@ export function stubAuthBackend(options: AuthStubOptions = {}) {
     pendingRefresh = false,
     refreshFailAfter,
     unknownStatus = 404,
+    routes = [],
   } = options;
 
   const calls: RecordedCall[] = [];
+  const routeAttempts = new Map<StubRoute, number>();
   let refreshCount = 0;
 
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -148,6 +169,20 @@ export function stubAuthBackend(options: AuthStubOptions = {}) {
         return jsonResponse({ detail: 'No se pudo cerrar la sesion' }, 502);
       }
       return jsonResponse({ status: 'ok' });
+    }
+
+    for (const route of routes) {
+      const matches =
+        typeof route.match === 'string' ? url.includes(route.match) : route.match.test(url);
+      const methodMatches = !route.method || route.method.toUpperCase() === method;
+      if (!matches || !methodMatches) continue;
+      const attempt = routeAttempts.get(route) ?? 0;
+      routeAttempts.set(route, attempt + 1);
+      const context: StubRouteContext = { url, method, body, attempt };
+      const status =
+        typeof route.status === 'function' ? route.status(context) : (route.status ?? 200);
+      const payload = typeof route.body === 'function' ? route.body(context) : route.body;
+      return jsonResponse(payload, status);
     }
 
     return jsonResponse({ detail: 'Not found' }, unknownStatus);
